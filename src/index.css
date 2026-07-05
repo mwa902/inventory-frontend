@@ -3,7 +3,7 @@
 body { font-family: sans-serif; background: #f5f5f5; color: #333; }
 
 /* ── Layout ── */
-.app-container { max-width: 900px; margin: 0 auto; padding: 1rem; }
+.app-container { width: 100%; padding: 0; }
 
 /* ── Auth card (Login / Signup) ── */
 .auth-card {
@@ -75,3 +75,140 @@ body { font-family: sans-serif; background: #f5f5f5; color: #333; }
     cursor: pointer;
 }
 .btn-back:hover { background: #c8c8c8; }
+
+/* ── Dashboard Layout ── */
+.dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+    background: #f0f2f5;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Sidebar */
+.dashboard-sidebar {
+    width: 220px;
+    background: #1e2a3a;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    min-height: 100vh;
+    position: fixed;
+    top: 0; left: 0;
+}
+.sidebar-logo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.sidebar-nav { display: flex; flex-direction: column; gap: .3rem; flex: 1; }
+.nav-item {
+    display: block;
+    padding: .6rem .9rem;
+    border-radius: 6px;
+    color: rgba(255,255,255,.7);
+    text-decoration: none;
+    font-size: .95rem;
+    transition: background .2s, color .2s;
+}
+.nav-item:hover, .nav-item.active {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+}
+.sidebar-logout {
+    margin-top: 1rem;
+    padding: .6rem .9rem;
+    border: 1px solid rgba(255,255,255,.2);
+    background: transparent;
+    color: rgba(255,255,255,.7);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: .9rem;
+    text-align: left;
+    transition: background .2s;
+}
+.sidebar-logout:hover { background: rgba(255,80,80,.3); color: #fff; }
+
+/* Main area */
+.dashboard-main {
+    margin-left: 220px;
+    flex: 1;
+    padding: 2rem;
+}
+
+/* Top bar */
+.dashboard-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+.dashboard-title { font-size: 1.6rem; font-weight: 700; color: #1e2a3a; }
+.dashboard-subtitle { color: #666; font-size: .9rem; margin-top: .2rem; }
+.user-avatar {
+    width: 48px; height: 48px;
+    background: #4a90e2;
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1rem;
+}
+
+/* Stat cards */
+.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+.stat-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    border-left: 4px solid transparent;
+}
+.stat-blue  { border-left-color: #4a90e2; }
+.stat-green { border-left-color: #4caf50; }
+.stat-orange{ border-left-color: #ff9800; }
+.stat-red   { border-left-color: #f44336; }
+.stat-icon  { font-size: 1.8rem; }
+.stat-info  { display: flex; flex-direction: column; }
+.stat-label { font-size: .8rem; color: #888; text-transform: uppercase; letter-spacing: .5px; }
+.stat-value { font-size: 1.6rem; font-weight: 700; color: #1e2a3a; }
+
+/* Profile card */
+.profile-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.profile-card h2 { font-size: 1.1rem; color: #1e2a3a; margin-bottom: 1.2rem; }
+.profile-row { display: flex; align-items: flex-start; gap: 1.5rem; }
+.profile-avatar-lg {
+    width: 70px; height: 70px;
+    background: #4a90e2;
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; font-weight: 700;
+    flex-shrink: 0;
+}
+.profile-details { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem 2rem; }
+.profile-field { display: flex; flex-direction: column; }
+.profile-label { font-size: .75rem; color: #999; text-transform: uppercase; letter-spacing: .5px; }
+.profile-value { font-size: .95rem; color: #1e2a3a; font-weight: 500; margin-top: .15rem; }
+.profile-role {
+    display: inline-block;
+    background: #e8f4fd;
+    color: #4a90e2;
+    padding: .15rem .5rem;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 600;
+}
+.profile-id { font-size: .75rem; color: #aaa; font-family: monospace; }
+

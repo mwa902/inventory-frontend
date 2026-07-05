@@ -2,7 +2,7 @@ import { useNavigate, Link } from "react-router";
 import { useState } from "react";
 
 const UserLogin = () => {
-    const [formData, setFormData] = useState({ username: '', password: '' });
+    const [formData, setFormData] = useState({ email: '', password: '' });
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -12,16 +12,25 @@ const UserLogin = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('', {
+            const res = await fetch("http://localhost:5000/api/auth/login", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Login failed');
-            localStorage.setItem('token', data.token);
-            alert('Login successful!');
-            navigate('/UserDashboard');
+
+            localStorage.setItem('user', JSON.stringify(data.userData));
+
+            const roleName = data.userData.role.roleName.toLowerCase();
+
+            if (roleName === 'admin') {
+                navigate('/AdminDashboard', { replace: true });
+            } else if (roleName === 'superadmin') {
+                navigate('/SuperAdminDashboard', { replace: true });
+            } else {
+                navigate('/UserDashboard', { replace: true });
+            }
         } catch (error) {
             alert(error.message || 'Login failed');
         }
@@ -29,12 +38,12 @@ const UserLogin = () => {
 
     return (
         <div className="auth-card">
-            <button className="btn-back" onClick={() => navigate(-1)}>← Back</button>
-            <h2>User Login</h2>
+            <button className="btn-back" onClick={() => navigate("/")}>← Back</button>
+            <h2>Login</h2>
             <form onSubmit={handleSubmit}>
                 <div className="field">
-                    <label>Username</label>
-                    <input type="text" name="username" value={formData.username} onChange={handleChange} required />
+                    <label>Email</label>
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required />
                 </div>
                 <div className="field">
                     <label>Password</label>
@@ -43,7 +52,7 @@ const UserLogin = () => {
                 <button type="submit" className="btn btn-primary">Login</button>
             </form>
             <p className="auth-footer">
-                Don't have an account? <Link to="/UserSignup">Sign Up</Link>
+                Don't have an account? <Link to="/">Sign Up</Link>
             </p>
         </div>
     );

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 
-const AdminDashboard = () => {
+const SuperAdminDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
 
@@ -19,12 +19,17 @@ const AdminDashboard = () => {
         navigate('/UserLogin', { replace: true });
     };
 
+    const UserCreate = () => {
+        navigate('/UserCreate', { replace: true });
+    };
+
     return (
         <div>
             <h1>Welcome {user?.name || 'User'}</h1>
             <button onClick={handleLogout}>Logout</button>
+            <button onClick={UserCreate}>Create User</button>
         </div>
     );
 };
 
-export default AdminDashboard;
+export default SuperAdminDashboard;

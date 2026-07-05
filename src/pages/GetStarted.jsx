@@ -5,11 +5,8 @@ const UserTypeLanding = () => {
         <div className="auth-card">
             <h1>Welcome to the Inventory Management Application</h1>
             <div className="btn-row">
-                <Link to="/AdminLanding">
-                    <button className="btn btn-primary">Admin Login</button>
-                </Link>
-                <Link to="/UserLanding">
-                    <button className="btn btn-success">User Login</button>
+                <Link to="/UserLogin">
+                    <button className="btn btn-primary">Get Started</button>
                 </Link>
             </div>
         </div>
