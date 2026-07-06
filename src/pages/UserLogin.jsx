@@ -72,16 +72,6 @@ const UserLogin = () => {
             Login
           </button>
         </form>
-        <p className="auth-footer">
-          Don't have an account?{" "}
-          <button
-            type="button"
-            className="auth-link-button"
-            onClick={() => setShowLimitedModal(true)}
-          >
-            Sign Up
-          </button>
-        </p>
       </div>
 
       {showLimitedModal && (
