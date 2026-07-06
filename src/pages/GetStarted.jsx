@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 
-const UserTypeLanding = () => {
+const GetStarted = () => {
     return (
         <div className="auth-card">
             <h1>Welcome to the Inventory Management Application</h1>
@@ -13,4 +13,4 @@ const UserTypeLanding = () => {
     );
 };
 
-export default UserTypeLanding;
+export default GetStarted;
