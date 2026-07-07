@@ -43,9 +43,6 @@ const UserLogin = () => {
       <div
         className={`auth-card ${showLimitedModal ? "auth-card--blurred" : ""}`}
       >
-        <button className="btn-back" onClick={() => navigate("/")}>
-          ← Back
-        </button>
         <h2>Login</h2>
         <form onSubmit={handleSubmit}>
           <div className="field">
