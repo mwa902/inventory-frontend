@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import Header from "../Components/HeaderSuperAdmin";
-import Sidebar from "../Components/SidebarSuperAdmin";
+import HeaderSuperAdmin from "../Components/HeaderSuperAdmin";
+import SidebarSuperAdmin from "../Components/SidebarSuperAdmin";
+import HeaderAdmin from "../Components/HeaderAdmin";
+import SidebarAdmin from "../Components/SidebarAdmin";
+import HeaderUser from "../Components/HeaderUser";
+import SidebarUser from "../Components/SidebarUser";
 
-
+// ADMIN DASHBOARD
 const AdminDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -17,16 +21,11 @@ const AdminDashboard = () => {
         }
     }, [navigate]);
 
-    const handleLogout = () => {
-        localStorage.removeItem('user');
-        navigate('/UserLogin', { replace: true });
-    };
-
     return (
         <div>
-            <Header />
+            <HeaderAdmin />
             <div className="dashboard-layout">
-                <Sidebar />
+                <SidebarAdmin />
                 <div className="content">
                     <h1 className="welcome">Welcome {user?.name || 'User'}</h1>
 
@@ -36,6 +35,7 @@ const AdminDashboard = () => {
     );
 };
 
+// USER DASHBOARD
 const UserDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -49,16 +49,12 @@ const UserDashboard = () => {
         }
     }, [navigate]);
 
-    const handleLogout = () => {
-        localStorage.removeItem('user');
-        navigate('/UserLogin', { replace: true });
-    };
 
     return (
         <div>
-            <Header />
+            <HeaderUser />
             <div className="dashboard-layout">
-                <Sidebar />
+                <SidebarUser />
                 <div className="content">
                     <h1 className="welcome">Welcome {user?.name || 'User'}</h1>
 
@@ -68,23 +64,29 @@ const UserDashboard = () => {
     );
 };
 
-
+// SUPER ADMIN DASHBOARD
 const SuperAdminDashboardUsers = () => {
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [editingUser, setEditingUser] = useState(null);
     const [editForm, setEditForm] = useState({ name: '', email: '', role: '' });
+    const [createMode, setCreateMode] = useState(false);
+    const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: '' });
     const navigate = useNavigate();
+
+    const loadUsers = (token) => {
+        fetch('http://localhost:5000/api/user', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setUsers(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            fetch('http://localhost:5000/api/user', {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-                .then(res => res.json())
-                .then(data => setUsers(Array.isArray(data) ? data : []))
-                .catch(() => { });
+            loadUsers(token);
             fetch('http://localhost:5000/api/role', {
                 headers: { Authorization: `Bearer ${token}` }
             })
@@ -109,10 +111,7 @@ const SuperAdminDashboardUsers = () => {
         const token = localStorage.getItem('token');
         fetch(`http://localhost:5000/api/user/${editingUser._id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify(editForm)
         })
             .then(res => res.json())
@@ -135,13 +134,38 @@ const SuperAdminDashboardUsers = () => {
         }
     };
 
+    const openCreate = () => {
+        setCreateForm({ name: '', email: '', password: '', role: '' });
+        setCreateMode(true);
+    };
+
+    const handleCreateSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:5000/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(createForm)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'User creation failed');
+            alert('User created successfully!');
+            setCreateMode(false);
+            loadUsers(token);
+        } catch (error) {
+            alert(error.message || 'User creation failed');
+        }
+    };
+
     return (
         <div>
-            <Header />
+            <HeaderSuperAdmin />
             <div className="dashboard-layout">
-                <Sidebar />
+                <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Users</h1>
+                    <button className="create-btn" onClick={openCreate}>Create User</button>
                     <table className="table">
                         <thead>
                             <tr>
@@ -175,35 +199,55 @@ const SuperAdminDashboardUsers = () => {
                         <h2>Edit User</h2>
                         <div className="modal-field">
                             <label>Name</label>
-                            <input
-                                type="text"
-                                value={editForm.name}
-                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                            />
+                            <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
                         </div>
                         <div className="modal-field">
                             <label>Email</label>
-                            <input
-                                type="email"
-                                value={editForm.email}
-                                onChange={e => setEditForm({ ...editForm, email: e.target.value })}
-                            />
+                            <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} />
                         </div>
                         <div className="modal-field">
                             <label>Role</label>
-                            <select
-                                value={editForm.role}
-                                onChange={e => setEditForm({ ...editForm, role: e.target.value })}
-                            >
-                                {roles.map(r => (
-                                    <option key={r._id} value={r._id}>{r.roleName}</option>
-                                ))}
+                            <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
+                                {roles.map(r => (<option key={r._id} value={r._id}>{r.roleName}</option>))}
                             </select>
                         </div>
                         <div className="modal-actions">
                             <button className="btn-primary" onClick={saveEdit}>Save</button>
                             <button className="btn-cancel" onClick={() => setEditingUser(null)}>Cancel</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {createMode && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h2>Create User</h2>
+                        <form onSubmit={handleCreateSubmit}>
+                            <div className="modal-field">
+                                <label>Name</label>
+                                <input type="text" value={createForm.name} onChange={e => setCreateForm({ ...createForm, name: e.target.value })} required />
+                            </div>
+                            <div className="modal-field">
+                                <label>Email</label>
+                                <input type="email" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} required />
+                            </div>
+                            <div className="modal-field">
+                                <label>Password</label>
+                                <input type="password" value={createForm.password} onChange={e => setCreateForm({ ...createForm, password: e.target.value })} required />
+                            </div>
+                            <div className="modal-field">
+                                <label>Role</label>
+                                <select value={createForm.role} onChange={e => setCreateForm({ ...createForm, role: e.target.value })} required>
+                                    <option value="">Select Role</option>
+                                    {roles.map(r => (<option key={r._id} value={r._id}>{r.roleName}</option>))}
+                                </select>
+                            </div>
+                            <div className="modal-actions">
+                                <button type="submit" className="btn-primary">Create</button>
+                                <button type="button" className="btn-cancel" onClick={() => setCreateMode(false)}>Cancel</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
@@ -216,11 +260,10 @@ const SuperAdminDashboardProducts = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            const parsed = JSON.parse(stored);
+        const token = localStorage.getItem('token');
+        if (token) {
             fetch('http://localhost:5000/api/product', {
-                headers: { Authorization: `Bearer ${parsed.token}` }
+                headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => res.json())
                 .then(data => setProducts(Array.isArray(data) ? data : []))
@@ -231,9 +274,9 @@ const SuperAdminDashboardProducts = () => {
     }, [navigate]);
     return (
         <div>
-            <Header />
+            <HeaderSuperAdmin />
             <div className="dashboard-layout">
-                <Sidebar />
+                <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Products</h1>
                     <table className="table">
@@ -278,11 +321,10 @@ const SuperAdminDashboardCategories = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            const parsed = JSON.parse(stored);
+        const token = localStorage.getItem('token');
+        if (token) {
             fetch('http://localhost:5000/api/category', {
-                headers: { Authorization: `Bearer ${parsed.token}` }
+                headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => res.json())
                 .then(data => setCategories(Array.isArray(data) ? data : []))
@@ -293,9 +335,9 @@ const SuperAdminDashboardCategories = () => {
     }, [navigate]);
     return (
         <div>
-            <Header />
+            <HeaderSuperAdmin />
             <div className="dashboard-layout">
-                <Sidebar />
+                <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Categories</h1>
                     <table className="table">
@@ -326,11 +368,10 @@ const SuperAdminDashboardSuppliers = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            const parsed = JSON.parse(stored);
+        const token = localStorage.getItem('token');
+        if (token) {
             fetch('http://localhost:5000/api/supplier', {
-                headers: { Authorization: `Bearer ${parsed.token}` }
+                headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => res.json())
                 .then(data => setSuppliers(Array.isArray(data) ? data : []))
@@ -341,9 +382,9 @@ const SuperAdminDashboardSuppliers = () => {
     }, [navigate]);
     return (
         <div>
-            <Header />
+            <HeaderSuperAdmin />
             <div className="dashboard-layout">
-                <Sidebar />
+                <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Suppliers</h1>
                     <table className="table">
@@ -394,9 +435,9 @@ const SuperAdminDashboardRoles = () => {
     }, [navigate]);
     return (
         <div>
-            <Header />
+            <HeaderSuperAdmin />
             <div className="dashboard-layout">
-                <Sidebar />
+                <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Roles</h1>
                     <table className="tablerole">
@@ -435,9 +476,9 @@ const SuperAdminDashboard = () => {
 
     return (
         <div>
-            <Header />
+            <HeaderSuperAdmin />
             <div className="dashboard-layout">
-                <Sidebar />
+                <SidebarSuperAdmin />
                 <div className="content">
                     <h1 className="welcome">Welcome {user?.name || 'User'}</h1>
                     <div className="card-container">
