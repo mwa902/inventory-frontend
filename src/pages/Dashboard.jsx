@@ -71,6 +71,9 @@ const UserDashboard = () => {
 
 const SuperAdminDashboardUsers = () => {
     const [users, setUsers] = useState([]);
+    const [roles, setRoles] = useState([]);
+    const [editingUser, setEditingUser] = useState(null);
+    const [editForm, setEditForm] = useState({ name: '', email: '', role: '' });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -82,10 +85,56 @@ const SuperAdminDashboardUsers = () => {
                 .then(res => res.json())
                 .then(data => setUsers(Array.isArray(data) ? data : []))
                 .catch(() => { });
+            fetch('http://localhost:5000/api/role', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setRoles(Array.isArray(data) ? data : []))
+                .catch(() => { });
         } else {
             navigate('/UserLogin', { replace: true });
         }
     }, [navigate]);
+
+    const openEdit = (user) => {
+        setEditingUser(user);
+        setEditForm({
+            name: user.name,
+            email: user.email,
+            role: user.role?._id || user.role
+        });
+    };
+
+    const saveEdit = () => {
+        const token = localStorage.getItem('token');
+        fetch(`http://localhost:5000/api/user/${editingUser._id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(editForm)
+        })
+            .then(res => res.json())
+            .then(updated => {
+                setUsers(users.map(u => u._id === updated._id ? { ...u, ...updated } : u));
+                setEditingUser(null);
+            })
+            .catch(() => { });
+    };
+
+    const DeleteUser = (userId) => {
+        if (confirm("Are you sure you want to delete this user?")) {
+            const token = localStorage.getItem('token');
+            fetch(`http://localhost:5000/api/user/${userId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(() => setUsers(users.filter(u => u._id !== userId)))
+                .catch(() => { });
+        }
+    };
+
     return (
         <div>
             <Header />
@@ -108,16 +157,60 @@ const SuperAdminDashboardUsers = () => {
                                     <td>{u.name}</td>
                                     <td>{u.email}</td>
                                     <td>{u.role?.roleName || u.role}</td>
-                                    <td><button>Edit</button> <button>Delete</button></td>
+                                    <td>
+                                        <button className="edit-button" onClick={() => openEdit(u)}>Edit</button>
+                                        {' '}
+                                        <button className="delete-button" onClick={() => DeleteUser(u._id)}>Delete</button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            {editingUser && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h2>Edit User</h2>
+                        <div className="modal-field">
+                            <label>Name</label>
+                            <input
+                                type="text"
+                                value={editForm.name}
+                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="modal-field">
+                            <label>Email</label>
+                            <input
+                                type="email"
+                                value={editForm.email}
+                                onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                            />
+                        </div>
+                        <div className="modal-field">
+                            <label>Role</label>
+                            <select
+                                value={editForm.role}
+                                onChange={e => setEditForm({ ...editForm, role: e.target.value })}
+                            >
+                                {roles.map(r => (
+                                    <option key={r._id} value={r._id}>{r.roleName}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="modal-actions">
+                            <button className="btn-primary" onClick={saveEdit}>Save</button>
+                            <button className="btn-cancel" onClick={() => setEditingUser(null)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+
 const SuperAdminDashboardProducts = () => {
     const [products, setProducts] = useState([]);
     const navigate = useNavigate();
@@ -287,9 +380,11 @@ const SuperAdminDashboardRoles = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            fetch('http://localhost:5000/api/role')
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch('http://localhost:5000/api/role', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
                 .then(res => res.json())
                 .then(data => setRoles(Array.isArray(data) ? data : []))
                 .catch(() => { });
