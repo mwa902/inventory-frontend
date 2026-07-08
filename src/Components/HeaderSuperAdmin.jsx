@@ -17,7 +17,7 @@ const HeaderSuperAdmin = () => {
     const toggleDropdown = () => setIsDropdownOpen(prev => !prev);
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
+        localStorage.clear();
         navigate('/UserLogin', { replace: true });
     };
 

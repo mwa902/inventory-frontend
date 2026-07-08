@@ -23,6 +23,7 @@ const UserLogin = () => {
       if (!res.ok) throw new Error(data.message || "Login failed");
 
       localStorage.setItem("user", JSON.stringify(data.userData));
+      localStorage.setItem("token", data.token);
 
       const roleName = data.userData.role.roleName.toLowerCase();
 

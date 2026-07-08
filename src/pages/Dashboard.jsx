@@ -29,7 +29,7 @@ const AdminDashboard = () => {
                 <Sidebar />
                 <div className="content">
                     <h1 className="welcome">Welcome {user?.name || 'User'}</h1>
-                    <button onClick={handleLogout}>Logout</button>
+
                 </div>
             </div>
         </div>
@@ -61,7 +61,7 @@ const UserDashboard = () => {
                 <Sidebar />
                 <div className="content">
                     <h1 className="welcome">Welcome {user?.name || 'User'}</h1>
-                    <button onClick={handleLogout}>Logout</button>
+
                 </div>
             </div>
         </div>
@@ -74,15 +74,14 @@ const SuperAdminDashboardUsers = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            const parsed = JSON.parse(stored);
+        const token = localStorage.getItem('token');
+        if (token) {
             fetch('http://localhost:5000/api/user', {
-                headers: { Authorization: `Bearer ${parsed.token}` }
+                headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => res.json())
                 .then(data => setUsers(Array.isArray(data) ? data : []))
-                .catch(() => {});
+                .catch(() => { });
         } else {
             navigate('/UserLogin', { replace: true });
         }
@@ -132,7 +131,7 @@ const SuperAdminDashboardProducts = () => {
             })
                 .then(res => res.json())
                 .then(data => setProducts(Array.isArray(data) ? data : []))
-                .catch(() => {});
+                .catch(() => { });
         } else {
             navigate('/UserLogin', { replace: true });
         }
@@ -194,7 +193,7 @@ const SuperAdminDashboardCategories = () => {
             })
                 .then(res => res.json())
                 .then(data => setCategories(Array.isArray(data) ? data : []))
-                .catch(() => {});
+                .catch(() => { });
         } else {
             navigate('/UserLogin', { replace: true });
         }
@@ -242,7 +241,7 @@ const SuperAdminDashboardSuppliers = () => {
             })
                 .then(res => res.json())
                 .then(data => setSuppliers(Array.isArray(data) ? data : []))
-                .catch(() => {});
+                .catch(() => { });
         } else {
             navigate('/UserLogin', { replace: true });
         }
@@ -293,7 +292,7 @@ const SuperAdminDashboardRoles = () => {
             fetch('http://localhost:5000/api/role')
                 .then(res => res.json())
                 .then(data => setRoles(Array.isArray(data) ? data : []))
-                .catch(() => {});
+                .catch(() => { });
         } else {
             navigate('/UserLogin', { replace: true });
         }
