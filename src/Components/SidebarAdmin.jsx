@@ -9,6 +9,15 @@ const SidebarAdmin = () => {
     const handleOrdersClick = () => {
         navigate('/AdminDashboard/Orders');
     };
+    const handleProductsClick = () => {
+        navigate('/AdminDashboard/Products');
+    };
+    const handleCategoriesClick = () => {
+        navigate('/AdminDashboard/Categories');
+    };
+    const handleSuppliersClick = () => {
+        navigate('/AdminDashboard/Suppliers');
+    };
 
     return (
         <nav className="sidebar">
@@ -16,6 +25,9 @@ const SidebarAdmin = () => {
                 <div className="sidebar-items">
                     <div className="sidebar-item" onClick={handleDashboardClick}>Dashboard</div>
                     <div className="sidebar-item" onClick={handleOrdersClick}>Orders</div>
+                    <div className="sidebar-item" onClick={handleProductsClick}>Products</div>
+                    <div className="sidebar-item" onClick={handleCategoriesClick}>Categories</div>
+                    <div className="sidebar-item" onClick={handleSuppliersClick}>Suppliers</div>
                 </div>
             </div>
         </nav>

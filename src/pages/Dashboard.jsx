@@ -227,6 +227,682 @@ const AdminDashboardOrders = () => {
     );
 };
 
+const AdminDashboardProducts = () => {
+    const [products, setProducts] = useState([]);
+    const [editForm, setEditForm] = useState({
+        product_name: "",
+        product_description: "",
+        product_purchase_price: "",
+        product_selling_price: "",
+        product_stock: "",
+        product_category: "",
+        product_supplier: "",
+        product_image: "",
+        product_status: "",
+    });
+    const [createForm, setCreateForm] = useState({
+        product_name: "",
+        product_description: "",
+        product_purchase_price: "",
+        product_selling_price: "",
+        product_stock: "",
+        product_category: "",
+        product_supplier: "",
+        product_image: "",
+        product_status: "",
+    });
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch('http://localhost:5000/api/product', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setProducts(Array.isArray(data) ? data : []))
+                .catch(() => { });
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }, [navigate]);
+    const edit = (p) => {
+        setEditForm(p);
+        setIsEditOpen(true);
+    };
+    const handleCreateSubmit = (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem("token");
+        fetch("http://localhost:5000/api/product", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(createForm),
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    setProducts([...products, data]);
+                    setIsCreateOpen(false);
+                    setCreateForm({
+                        product_name: "",
+                        product_description: "",
+                        product_purchase_price: "",
+                        product_selling_price: "",
+                        product_stock: "",
+                        product_category: "",
+                        product_supplier: "",
+                        product_image: "",
+                        product_status: "",
+                    });
+                }
+            })
+            .catch(err => alert("Something went wrong!"));
+    };
+    const handleUpdateSubmit = (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem("token");
+        fetch(`http://localhost:5000/api/product/${editForm._id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(editForm),
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    setProducts(products.map(p => p._id === editForm._id ? data : p));
+                    setIsEditOpen(false);
+                    setEditForm({
+                        product_name: "",
+                        product_description: "",
+                        product_purchase_price: "",
+                        product_selling_price: "",
+                        product_stock: "",
+                        product_category: "",
+                        product_supplier: "",
+                        product_image: "",
+                        product_status: "",
+                    });
+                }
+            })
+            .catch(err => alert("Something went wrong!"));
+    };
+    const handleDelete = (productId) => {
+        if (!confirm('Are you sure you want to delete this product?')) return;
+        const token = localStorage.getItem('token');
+        fetch(`http://localhost:5000/api/product/${productId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    setProducts(products.filter(p => p._id !== productId));
+                    alert('Product deleted successfully');
+                }
+            })
+            .catch(() => alert('Something went wrong!'));
+    };
+    return (
+        <div>
+            <HeaderAdmin />
+            <div className="dashboard-layout">
+                <SidebarAdmin />
+                <div className="content">
+                    <h1>Products</h1>
+                    <button className="create-btn" onClick={() => setIsCreateOpen(true)}>Create Product</button>
+                    {isCreateOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Create Product</h2>
+                                <form onSubmit={handleCreateSubmit}>
+                                    <div className="modal-field">
+                                        <label>Product Name</label>
+                                        <input type="text" value={createForm.product_name} onChange={e => setCreateForm({ ...createForm, product_name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Description</label>
+                                        <input type="text" value={createForm.product_description} onChange={e => setCreateForm({ ...createForm, product_description: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Purchase Price</label>
+                                        <input type="text" value={createForm.product_purchase_price} onChange={e => setCreateForm({ ...createForm, product_purchase_price: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Selling Price</label>
+                                        <input type="text" value={createForm.product_selling_price} onChange={e => setCreateForm({ ...createForm, product_selling_price: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Stock</label>
+                                        <input type="text" value={createForm.product_stock} onChange={e => setCreateForm({ ...createForm, product_stock: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Category</label>
+                                        <input type="text" value={createForm.product_category} onChange={e => setCreateForm({ ...createForm, product_category: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Supplier</label>
+                                        <input type="text" value={createForm.product_supplier} onChange={e => setCreateForm({ ...createForm, product_supplier: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Image</label>
+                                        <input type="text" value={createForm.product_image} onChange={e => setCreateForm({ ...createForm, product_image: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Status</label>
+                                        <input type="text" value={createForm.product_status} onChange={e => setCreateForm({ ...createForm, product_status: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button type="submit" className="btn-primary">Create</button>
+                                        <button type="button" className="btn-cancel" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    {isEditOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Edit Product</h2>
+                                <form onSubmit={handleEditSubmit}>
+                                    <div className="modal-field">
+                                        <label>Product Name</label>
+                                        <input type="text" value={editForm.product_name} onChange={e => setEditForm({ ...editForm, product_name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Description</label>
+                                        <input type="text" value={editForm.product_description} onChange={e => setEditForm({ ...editForm, product_description: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Purchase Price</label>
+                                        <input type="text" value={editForm.product_purchase_price} onChange={e => setEditForm({ ...editForm, product_purchase_price: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Selling Price</label>
+                                        <input type="text" value={editForm.product_selling_price} onChange={e => setEditForm({ ...editForm, product_selling_price: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Stock</label>
+                                        <input type="text" value={editForm.product_stock} onChange={e => setEditForm({ ...editForm, product_stock: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Category</label>
+                                        <input type="text" value={editForm.product_category} onChange={e => setEditForm({ ...editForm, product_category: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Supplier</label>
+                                        <input type="text" value={editForm.product_supplier} onChange={e => setEditForm({ ...editForm, product_supplier: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Image</label>
+                                        <input type="text" value={editForm.product_image} onChange={e => setEditForm({ ...editForm, product_image: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Status</label>
+                                        <input type="text" value={editForm.product_status} onChange={e => setEditForm({ ...editForm, product_status: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button type="submit" className="btn-primary">Save</button>
+                                        <button type="button" className="btn-cancel" onClick={() => setIsEditOpen(false)}>Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Product Description</th>
+                                <th>Product Purchase Price</th>
+                                <th>Product Selling Price</th>
+                                <th>Product Stock</th>
+                                <th>Product Category</th>
+                                <th>Product Supplier</th>
+                                <th>Product Image</th>
+                                <th>Product Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {products.map(p => (
+                                <tr key={p._id}>
+                                    <td>{p.product_name}</td>
+                                    <td>{p.product_description}</td>
+                                    <td>{p.purchase_price}</td>
+                                    <td>{p.selling_price}</td>
+                                    <td>{p.Stock}</td>
+                                    <td>{p.category?.category_name || p.category}</td>
+                                    <td>{p.supplier?.Name || p.supplier}</td>
+                                    <td><img src={p.image} alt={p.product_name} width="40" /></td>
+                                    <td>{p.status}</td>
+                                    <td><button className="edit-button" onClick={() => edit(p)}>Edit</button> <button className="delete-button" onClick={() => handleDelete(p._id)}>Delete</button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const AdminDashboardCategories = () => {
+    const [categories, setCategories] = useState([]);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [currentCategory, setCurrentCategory] = useState(null);
+    const [editForm, setEditForm] = useState({
+        category_name: '',
+        description: ''
+    });
+    const [createForm, setCreateForm] = useState({
+        category_name: '',
+        description: ''
+    });
+
+    const navigate = useNavigate();
+
+    const loadCategories = (token) => {
+        fetch('http://localhost:5000/api/category', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setCategories(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            loadCategories(token);
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }, [navigate]);
+
+    const handleCreateSubmit = (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch('http://localhost:5000/api/category', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify(createForm)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    setCategories([...categories, data]);
+                    setIsCreateOpen(false);
+                    setCreateForm({ category_name: '', description: '' });
+                    alert('Category created successfully');
+                })
+                .catch(() => alert('Failed to create category'));
+        }
+    }
+
+    const openEdit = (c) => {
+        setCurrentCategory(c._id);
+        setEditForm({
+            category_name: c.category_name,
+            description: c.description
+        });
+        setIsEditOpen(true);
+    };
+
+    const handleEditSubmit = (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`http://localhost:5000/api/category/${currentCategory}`, {
+                method: 'PUT',
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify(editForm)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    setCategories(categories.map(c => c._id === currentCategory ? data : c));
+                    setIsEditOpen(false);
+                    setCurrentCategory(null);
+                    alert('Category updated successfully');
+                })
+                .catch(() => alert('Failed to update category'));
+        }
+    };
+
+    const handleDelete = (id) => {
+        if (!confirm('Are you sure you want to delete this category?')) return;
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`http://localhost:5000/api/category/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(() => {
+                    setCategories(categories.filter(c => c._id !== id));
+                    alert('Category deleted successfully');
+                })
+                .catch(() => alert('Failed to delete category'));
+        }
+    }
+
+    return (
+        <div>
+            <HeaderAdmin />
+            <div className="dashboard-layout">
+                <SidebarAdmin />
+                <div className="content">
+                    <h1>Categories</h1>
+                    <button className="create-btn" onClick={() => setIsCreateOpen(true)}>Create Category</button>
+
+                    {isCreateOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Create Category</h2>
+                                <form onSubmit={handleCreateSubmit}>
+                                    <div className="modal-field">
+                                        <label>Category Name</label>
+                                        <input type="text" value={createForm.category_name} onChange={(e) => setCreateForm({ ...createForm, category_name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Description</label>
+                                        <input type="text" value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Create Category</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {isEditOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Edit Category</h2>
+                                <form onSubmit={handleEditSubmit}>
+                                    <div className="modal-field">
+                                        <label>Category Name</label>
+                                        <input type="text" value={editForm.category_name} onChange={(e) => setEditForm({ ...editForm, category_name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Description</label>
+                                        <input type="text" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" type="button" onClick={() => setIsEditOpen(false)}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Update Category</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Category Name</th>
+                                <th>Category Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {categories.map(c => (
+                                <tr key={c._id}>
+                                    <td>{c.category_name}</td>
+                                    <td>{c.description}</td>
+                                    <td>
+                                        <button className="edit-button" onClick={() => openEdit(c)}>Edit</button>
+                                        {' '}
+                                        <button className="delete-button" onClick={() => handleDelete(c._id)}>Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const AdminDashboardSuppliers = () => {
+    const [suppliers, setSuppliers] = useState([]);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editForm, setEditForm] = useState({ Name: "", company: "", phone_number: "", status: "" });
+    const [createForm, setCreateForm] = useState({ Name: "", company: "", phone_number: "", status: "" });
+    const navigate = useNavigate();
+
+    const loadSuppliers = async () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch('http://localhost:5000/api/supplier', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setSuppliers(Array.isArray(data) ? data : []))
+                .catch(() => { });
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }
+
+    useEffect(() => {
+        loadSuppliers();
+    }, [navigate]);
+
+    const createSupplier = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch('http://localhost:5000/api/supplier', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(createForm)
+            })
+                .then(res => res.json())
+                .then((data) => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        setIsCreateOpen(false);
+                        setCreateForm({ Name: "", company: "", phone_number: "", status: "" });
+                        loadSuppliers();
+                        alert('Supplier created successfully');
+                    }
+                })
+                .catch(() => alert('Failed to create supplier'));
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }
+
+    const openEdit = (supplier) => {
+        setEditForm(supplier);
+        setIsEditOpen(true);
+    }
+
+    const updateSupplier = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`http://localhost:5000/api/supplier/${editForm._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(editForm)
+            })
+                .then(res => res.json())
+                .then((data) => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        setIsEditOpen(false);
+                        loadSuppliers();
+                        alert('Supplier updated successfully');
+                    }
+                })
+                .catch(() => alert('Failed to update supplier'));
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }
+
+    const deleteSupplier = async (id) => {
+        if (!confirm('Are you sure you want to delete this supplier?')) return;
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`http://localhost:5000/api/supplier/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                }
+            })
+                .then(res => res.json())
+                .then((data) => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        loadSuppliers();
+                        alert('Supplier deleted successfully');
+                    }
+                })
+                .catch(() => alert('Failed to delete supplier'));
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }
+
+    return (
+        <div>
+            <HeaderAdmin />
+            <div className="dashboard-layout">
+                <SidebarAdmin />
+                <div className="content">
+                    <h1>Suppliers</h1>
+                    <button onClick={() => setIsCreateOpen(true)} className="create-btn">Add Supplier</button>
+
+                    {isCreateOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Add Supplier</h2>
+                                <form onSubmit={createSupplier}>
+                                    <div className="modal-field">
+                                        <label>Supplier Name</label>
+                                        <input type="text" value={createForm.Name} onChange={(e) => setCreateForm({ ...createForm, Name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Phone</label>
+                                        <input type="text" value={createForm.phone_number} onChange={(e) => setCreateForm({ ...createForm, phone_number: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Company</label>
+                                        <input type="text" value={createForm.company} onChange={(e) => setCreateForm({ ...createForm, company: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Status</label>
+                                        <select value={createForm.status} onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })} required>
+                                            <option value="" disabled>Select Status</option>
+                                            <option value="Confirm">Confirm</option>
+                                            <option value="Cancel">Cancel</option>
+                                        </select>
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Create</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {isEditOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Edit Supplier</h2>
+                                <form onSubmit={updateSupplier}>
+                                    <div className="modal-field">
+                                        <label>Supplier Name</label>
+                                        <input type="text" value={editForm.Name} onChange={(e) => setEditForm({ ...editForm, Name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Phone</label>
+                                        <input type="text" value={editForm.phone_number} onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Company</label>
+                                        <input type="text" value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Status</label>
+                                        <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} required>
+                                            <option value="" disabled>Select Status</option>
+                                            <option value="Confirm">Confirm</option>
+                                            <option value="Cancel">Cancel</option>
+                                        </select>
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" type="button" onClick={() => setIsEditOpen(false)}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Update</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Supplier Name</th>
+                                <th>Supplier Phone</th>
+                                <th>Supplier Company</th>
+                                <th>Supplier Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {suppliers.map(s => (
+                                <tr key={s._id}>
+                                    <td>{s.Name}</td>
+                                    <td>{s.phone_number}</td>
+                                    <td>{s.company}</td>
+                                    <td>{s.status}</td>
+                                    <td>
+                                        <button className="edit-button" onClick={() => openEdit(s)}>Edit</button>
+                                        {' '}
+                                        <button className="delete-button" onClick={() => deleteSupplier(s._id)}>Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 //---------------------------------------
 //----------- USER DASHBOARD ------------
 //---------------------------------------
@@ -1554,4 +2230,4 @@ const SuperAdminDashboard = () => {
     );
 };
 
-export { SuperAdminDashboardOrders, SuperAdminDashboardRoles, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, AdminDashboard, AdminDashboardOrders, UserDashboard, SuperAdminDashboard };
+export { SuperAdminDashboardOrders, SuperAdminDashboardRoles, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, AdminDashboard, AdminDashboardOrders, UserDashboard, SuperAdminDashboard, AdminDashboardProducts, AdminDashboardCategories, AdminDashboardSuppliers };

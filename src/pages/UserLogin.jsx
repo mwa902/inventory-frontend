@@ -4,7 +4,6 @@ import { useState } from "react";
 
 const UserLogin = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [showLimitedModal, setShowLimitedModal] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -41,9 +40,7 @@ const UserLogin = () => {
 
   return (
     <div className="auth-page">
-      <div
-        className={`auth-card ${showLimitedModal ? "auth-card--blurred" : ""}`}
-      >
+      <div className="auth-card">
         <h2>Login</h2>
         <form onSubmit={handleSubmit}>
           <div className="field">
