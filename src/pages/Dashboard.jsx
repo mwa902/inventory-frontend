@@ -728,21 +728,104 @@ const SuperAdminDashboardProducts = () => {
 };
 const SuperAdminDashboardCategories = () => {
     const [categories, setCategories] = useState([]);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [currentCategory, setCurrentCategory] = useState(null);
+    const [editForm, setEditForm] = useState({
+        category_name: '',
+        description: ''
+    });
+    const [createForm, setCreateForm] = useState({
+        category_name: '',
+        description: ''
+    });
+
     const navigate = useNavigate();
+
+    const loadCategories = (token) => {
+        fetch('http://localhost:5000/api/category', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setCategories(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            fetch('http://localhost:5000/api/category', {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-                .then(res => res.json())
-                .then(data => setCategories(Array.isArray(data) ? data : []))
-                .catch(() => { });
+            loadCategories(token);
         } else {
             navigate('/UserLogin', { replace: true });
         }
     }, [navigate]);
+
+    const handleCreateSubmit = (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch('http://localhost:5000/api/category', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify(createForm)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    setCategories([...categories, data]);
+                    setIsCreateOpen(false);
+                    setCreateForm({ category_name: '', description: '' });
+                    alert('Category created successfully');
+                })
+                .catch(() => alert('Failed to create category'));
+        }
+    }
+
+    const openEdit = (c) => {
+        setCurrentCategory(c._id);
+        setEditForm({
+            category_name: c.category_name,
+            description: c.description
+        });
+        setIsEditOpen(true);
+    };
+
+    const handleEditSubmit = (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`http://localhost:5000/api/category/${currentCategory}`, {
+                method: 'PUT',
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify(editForm)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    setCategories(categories.map(c => c._id === currentCategory ? data : c));
+                    setIsEditOpen(false);
+                    setCurrentCategory(null);
+                    alert('Category updated successfully');
+                })
+                .catch(() => alert('Failed to update category'));
+        }
+    };
+
+    const handleDelete = (id) => {
+        if (!confirm('Are you sure you want to delete this category?')) return;
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`http://localhost:5000/api/category/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(() => {
+                    setCategories(categories.filter(c => c._id !== id));
+                    alert('Category deleted successfully');
+                })
+                .catch(() => alert('Failed to delete category'));
+        }
+    }
+
     return (
         <div>
             <HeaderSuperAdmin />
@@ -750,6 +833,52 @@ const SuperAdminDashboardCategories = () => {
                 <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Categories</h1>
+                    <button className="create-btn" onClick={() => setIsCreateOpen(true)}>Create Category</button>
+                    
+                    {isCreateOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Create Category</h2>
+                                <form onSubmit={handleCreateSubmit}>
+                                    <div className="modal-field">
+                                        <label>Category Name</label>
+                                        <input type="text" value={createForm.category_name} onChange={(e) => setCreateForm({ ...createForm, category_name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Description</label>
+                                        <input type="text" value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Create Category</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {isEditOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Edit Category</h2>
+                                <form onSubmit={handleEditSubmit}>
+                                    <div className="modal-field">
+                                        <label>Category Name</label>
+                                        <input type="text" value={editForm.category_name} onChange={(e) => setEditForm({ ...editForm, category_name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Description</label>
+                                        <input type="text" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" type="button" onClick={() => setIsEditOpen(false)}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Update Category</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
                     <table className="table">
                         <thead>
                             <tr>
@@ -763,7 +892,11 @@ const SuperAdminDashboardCategories = () => {
                                 <tr key={c._id}>
                                     <td>{c.category_name}</td>
                                     <td>{c.description}</td>
-                                    <td><button>Edit</button> <button>Delete</button></td>
+                                    <td>
+                                        <button className="edit-button" onClick={() => openEdit(c)}>Edit</button>
+                                        {' '}
+                                        <button className="delete-button" onClick={() => handleDelete(c._id)}>Delete</button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
