@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import UserLogin from "./pages/UserLogin";
-import { SuperAdminDashboard, AdminDashboard, UserDashboard, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, SuperAdminDashboardRoles } from "./pages/Dashboard";
+import { SuperAdminDashboard, AdminDashboard, AdminDashboardOrders, UserDashboard, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, SuperAdminDashboardRoles } from "./pages/Dashboard";
 import ProtectedRoute from "./Components/ProtectedRoute";
 
 const App = () => {
@@ -10,19 +10,24 @@ const App = () => {
             <Routes>
                 <Route path="/" element={<Navigate to="/UserLogin" replace />} />
                 <Route path="/UserLogin" element={<UserLogin />} />
-                
+
                 <Route path="/UserDashboard" element={
                     <ProtectedRoute allowedRoles={['user']}>
                         <UserDashboard />
                     </ProtectedRoute>
                 } />
-                
+
                 <Route path="/AdminDashboard" element={
-                    <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                    <ProtectedRoute allowedRoles={['admin']}>
                         <AdminDashboard />
                     </ProtectedRoute>
                 } />
-                
+                <Route path="/AdminDashboard/Orders" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                        <AdminDashboardOrders />
+                    </ProtectedRoute>
+                } />
+
                 <Route path="/SuperAdminDashboard" element={
                     <ProtectedRoute allowedRoles={['superadmin']}>
                         <SuperAdminDashboard />

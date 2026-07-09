@@ -7,7 +7,9 @@ import SidebarAdmin from "../Components/SidebarAdmin";
 import HeaderUser from "../Components/HeaderUser";
 import SidebarUser from "../Components/SidebarUser";
 
-// ADMIN DASHBOARD
+//---------------------------------------
+//----------- ADMIN DASHBOARD -----------
+//---------------------------------------
 const AdminDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -28,14 +30,205 @@ const AdminDashboard = () => {
                 <SidebarAdmin />
                 <div className="content">
                     <h1 className="welcome">Welcome {user?.name || 'User'}</h1>
-
                 </div>
             </div>
         </div>
     );
 };
 
-// USER DASHBOARD
+const AdminDashboardOrders = () => {
+    const [orders, setOrders] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
+    const [createMode, setCreateMode] = useState(false);
+    const [createForm, setCreateForm] = useState({ supplier_id: '', product_id: '', quantity: '' });
+    const navigate = useNavigate();
+
+    const loadOrders = (token) => {
+        fetch('http://localhost:5000/api/order', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setOrders(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            loadOrders(token);
+            fetch('http://localhost:5000/api/product', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setProducts(Array.isArray(data) ? data : []))
+                .catch(() => { });
+            fetch('http://localhost:5000/api/supplier', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setSuppliers(Array.isArray(data) ? data : []))
+                .catch(() => { });
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }, [navigate]);
+
+    const openCreate = () => {
+        setCreateForm({ supplier_id: '', product_id: '', quantity: '' });
+        setCreateMode(true);
+    };
+
+    const handleCreateSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:5000/api/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(createForm)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Order creation failed');
+            alert('Order created successfully!');
+            setCreateMode(false);
+            loadOrders(token);
+        } catch (error) {
+            alert(error.message || 'Order creation failed');
+        }
+    };
+
+    const handleConfirm = async (orderId) => {
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ order_id: orderId, status: 'Confirmed' })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Confirm failed');
+            alert(data.message || 'Order confirmed!');
+            loadOrders(token);
+        } catch (error) {
+            alert(error.message || 'Confirm failed');
+        }
+    };
+
+    const handleCancel = async (orderId) => {
+        if (!confirm('Are you sure you want to cancel this order?')) return;
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ order_id: orderId, status: 'Cancelled' })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Cancel failed');
+            alert(data.message || 'Order cancelled!');
+            loadOrders(token);
+        } catch (error) {
+            alert(error.message || 'Cancel failed');
+        }
+    };
+
+    const getProductName = (id) => {
+        const p = products.find(p => p._id === id);
+        return p ? p.product_name : id;
+    };
+
+    const getSupplierName = (id) => {
+        const s = suppliers.find(s => s._id === id);
+        return s ? s.Name : id;
+    };
+
+    return (
+        <div>
+            <HeaderAdmin />
+            <div className="dashboard-layout">
+                <SidebarAdmin />
+                <div className="content">
+                    <h1>Orders</h1>
+                    <button className="create-btn" onClick={openCreate}>Create Order</button>
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Supplier</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {orders.map(o => (
+                                <tr key={o._id}>
+                                    <td>{getSupplierName(o.supplier_id)}</td>
+                                    <td>{getProductName(o.product_id)}</td>
+                                    <td>{o.quantity}</td>
+                                    <td>{o.subtotal || '-'}</td>
+                                    <td>
+                                        <span className={`status-badge status-${o.orderStatus?.toLowerCase()}`}>
+                                            {o.orderStatus}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {o.orderStatus === 'Pending' && (
+                                            <>
+                                                <button className="edit-button" onClick={() => handleConfirm(o._id)}>Confirm</button>
+                                                {' '}
+                                                <button className="delete-button" onClick={() => handleCancel(o._id)}>Cancel</button>
+                                            </>
+                                        )}
+                                        {o.orderStatus !== 'Pending' && <span>—</span>}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {createMode && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h2>Create Order</h2>
+                        <form onSubmit={handleCreateSubmit}>
+                            <div className="modal-field">
+                                <label>Supplier</label>
+                                <select value={createForm.supplier_id} onChange={e => setCreateForm({ ...createForm, supplier_id: e.target.value })} required>
+                                    <option value="">Select Supplier</option>
+                                    {suppliers.map(s => (<option key={s._id} value={s._id}>{s.Name}</option>))}
+                                </select>
+                            </div>
+                            <div className="modal-field">
+                                <label>Product</label>
+                                <select value={createForm.product_id} onChange={e => setCreateForm({ ...createForm, product_id: e.target.value })} required>
+                                    <option value="">Select Product</option>
+                                    {products.map(p => (<option key={p._id} value={p._id}>{p.product_name}</option>))}
+                                </select>
+                            </div>
+                            <div className="modal-field">
+                                <label>Quantity</label>
+                                <input type="number" min="1" value={createForm.quantity} onChange={e => setCreateForm({ ...createForm, quantity: e.target.value })} required />
+                            </div>
+                            <div className="modal-actions">
+                                <button type="submit" className="btn-primary">Create</button>
+                                <button type="button" className="btn-cancel" onClick={() => setCreateMode(false)}>Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+//---------------------------------------
+//----------- USER DASHBOARD ------------
+//---------------------------------------
 const UserDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -64,7 +257,9 @@ const UserDashboard = () => {
     );
 };
 
-// SUPER ADMIN DASHBOARD
+//---------------------------------------
+//-------- SUPER ADMIN DASHBOARD --------
+//---------------------------------------
 const SuperAdminDashboardUsers = () => {
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
@@ -157,6 +352,10 @@ const SuperAdminDashboardUsers = () => {
             alert(error.message || 'User creation failed');
         }
     };
+    const getRoleName = (roleId) => {
+        const r = roles.find(role => role._id === roleId);
+        return r ? r.roleName : roleId;
+    };
 
     return (
         <div>
@@ -180,7 +379,7 @@ const SuperAdminDashboardUsers = () => {
                                 <tr key={u._id}>
                                     <td>{u.name}</td>
                                     <td>{u.email}</td>
-                                    <td>{u.role?.roleName || u.role}</td>
+                                    <td>{getRoleName(u.role)}</td>
                                     <td>
                                         <button className="edit-button" onClick={() => openEdit(u)}>Edit</button>
                                         {' '}
@@ -419,20 +618,117 @@ const SuperAdminDashboardSuppliers = () => {
 const SuperAdminDashboardRoles = () => {
     const [roles, setRoles] = useState([]);
     const navigate = useNavigate();
-
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentRole, setCurrentRole] = useState(null);
+    const [editForm, setEditForm] = useState({
+        name: "",
+    });
+    const [createForm, setCreateForm] = useState({
+        name: "",
+    });
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const loadRoles = (token) => {
+        fetch('http://localhost:5000/api/role', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setRoles(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            fetch('http://localhost:5000/api/role', {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-                .then(res => res.json())
-                .then(data => setRoles(Array.isArray(data) ? data : []))
-                .catch(() => { });
+            loadRoles(token);
         } else {
             navigate('/UserLogin', { replace: true });
         }
     }, [navigate]);
+
+    const openEdit = (role) => {
+        setIsEditing(true);
+        setCurrentRole(role._id);
+        setEditForm({
+            name: role.roleName,
+        });
+    };
+
+    const cancelEdit = () => {
+        setIsEditing(false);
+        setCurrentRole(null);
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`http://localhost:5000/api/role/${currentRole}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    roleName: editForm.name,
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Role update failed');
+            alert('Role updated successfully!');
+            setIsEditing(false);
+            setCurrentRole(null);
+            loadRoles(token);
+        } catch (error) {
+            alert(error.message || 'Role update failed');
+        }
+    };
+
+    const handleDelete = async (roleId) => {
+        if (!confirm('Are you sure you want to delete this role?')) return;
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`http://localhost:5000/api/role/${roleId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Role deletion failed');
+            alert(data.message || 'Role deleted successfully!');
+            loadRoles(token);
+        } catch (error) {
+            alert(error.message || 'Role deletion failed');
+        }
+    };
+
+    const openCreate = () => {
+        setIsCreateOpen(true);
+        setCreateForm({ name: "" });
+    };
+
+    const cancelCreate = () => {
+        setIsCreateOpen(false);
+    };
+
+    const handleCreateSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:5000/api/role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    roleName: createForm.name,
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Role creation failed');
+            alert('Role created successfully!');
+            setCreateForm({
+                name: "",
+            });
+            setIsCreateOpen(false);
+            loadRoles(token);
+        } catch (error) {
+            alert(error.message || 'Role creation failed');
+        }
+    };
+
     return (
         <div>
             <HeaderSuperAdmin />
@@ -440,6 +736,7 @@ const SuperAdminDashboardRoles = () => {
                 <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Roles</h1>
+                    <button className="create-btn" onClick={openCreate}>Create Role</button>
                     <table className="tablerole">
                         <thead>
                             <tr>
@@ -451,11 +748,51 @@ const SuperAdminDashboardRoles = () => {
                             {roles.map(r => (
                                 <tr key={r._id}>
                                     <td>{r.roleName}</td>
-                                    <td><button>Edit</button> <button>Delete</button></td>
+                                    <td><button className="edit-button" onClick={() => openEdit(r)}>Edit</button> <button className="delete-button" onClick={() => handleDelete(r._id)}>Delete</button></td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+
+                    {/* create modal */}
+                    {isCreateOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Create Role</h2>
+                                <form onSubmit={handleCreateSubmit}>
+                                    <div className="modal-field">
+                                        <label>Role Name</label>
+                                        <input type="text" value={createForm.name} onChange={e => setCreateForm({ ...createForm, name: e.target.value })} required />
+                                    </div>
+
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" onClick={cancelCreate}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Save</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* edit modal */}
+                    {isEditing && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Edit Role</h2>
+                                <form onSubmit={handleEditSubmit}>
+                                    <div className="modal-field">
+                                        <label>Role Name</label>
+                                        <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required />
+                                    </div>
+
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" onClick={cancelEdit}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Save</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -509,4 +846,4 @@ const SuperAdminDashboard = () => {
     );
 };
 
-export { SuperAdminDashboardRoles, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, AdminDashboard, UserDashboard, SuperAdminDashboard };
+export { SuperAdminDashboardRoles, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, AdminDashboard, AdminDashboardOrders, UserDashboard, SuperAdminDashboard };

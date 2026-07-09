@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import LimitedAction from "../Components/limitedaction";
+
 
 const UserLogin = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -71,15 +71,6 @@ const UserLogin = () => {
           </button>
         </form>
       </div>
-
-      {showLimitedModal && (
-        <LimitedAction
-          onContinue={() => {
-            setShowLimitedModal(false);
-            navigate("/");
-          }}
-        />
-      )}
     </div>
   );
 };
