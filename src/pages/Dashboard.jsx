@@ -456,6 +456,30 @@ const SuperAdminDashboardUsers = () => {
 
 const SuperAdminDashboardProducts = () => {
     const [products, setProducts] = useState([]);
+    const [editForm, setEditForm] = useState({
+        product_name: "",
+        product_description: "",
+        product_purchase_price: "",
+        product_selling_price: "",
+        product_stock: "",
+        product_category: "",
+        product_supplier: "",
+        product_image: "",
+        product_status: "",
+    });
+    const [createForm, setCreateForm] = useState({
+        product_name: "",
+        product_description: "",
+        product_purchase_price: "",
+        product_selling_price: "",
+        product_stock: "",
+        product_category: "",
+        product_supplier: "",
+        product_image: "",
+        product_status: "",
+    });
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -471,6 +495,94 @@ const SuperAdminDashboardProducts = () => {
             navigate('/UserLogin', { replace: true });
         }
     }, [navigate]);
+    const edit = (p) => {
+        setEditForm(p);
+        setIsEditOpen(true);
+    };
+    const handleCreateSubmit = (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem("token");
+        fetch("http://localhost:5000/api/product", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(createForm),
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    setProducts([...products, data]);
+                    setIsCreateOpen(false);
+                    setCreateForm({
+                        product_name: "",
+                        product_description: "",
+                        product_purchase_price: "",
+                        product_selling_price: "",
+                        product_stock: "",
+                        product_category: "",
+                        product_supplier: "",
+                        product_image: "",
+                        product_status: "",
+                    });
+                }
+            })
+            .catch(err => alert("Something went wrong!"));
+    };
+    const handleUpdateSubmit = (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem("token");
+        fetch(`http://localhost:5000/api/product/${editForm._id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(editForm),
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    setProducts(products.map(p => p._id === editForm._id ? data : p));
+                    setIsEditOpen(false);
+                    setEditForm({
+                        product_name: "",
+                        product_description: "",
+                        product_purchase_price: "",
+                        product_selling_price: "",
+                        product_stock: "",
+                        product_category: "",
+                        product_supplier: "",
+                        product_image: "",
+                        product_status: "",
+                    });
+                }
+            })
+            .catch(err => alert("Something went wrong!"));
+    };
+    const handleDelete = (productId) => {
+        if (!confirm('Are you sure you want to delete this product?')) return;
+        const token = localStorage.getItem('token');
+        fetch(`http://localhost:5000/api/product/${productId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    setProducts(products.filter(p => p._id !== productId));
+                    alert('Product deleted successfully');
+                }
+            })
+            .catch(() => alert('Something went wrong!'));
+    };
     return (
         <div>
             <HeaderSuperAdmin />
@@ -478,6 +590,105 @@ const SuperAdminDashboardProducts = () => {
                 <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Products</h1>
+                    <button className="create-btn" onClick={() => setIsCreateOpen(true)}>Create Product</button>
+                    {isCreateOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Create Product</h2>
+                                <form onSubmit={handleCreateSubmit}>
+                                    <div className="modal-field">
+                                        <label>Product Name</label>
+                                        <input type="text" value={createForm.product_name} onChange={e => setCreateForm({ ...createForm, product_name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Description</label>
+                                        <input type="text" value={createForm.product_description} onChange={e => setCreateForm({ ...createForm, product_description: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Purchase Price</label>
+                                        <input type="text" value={createForm.product_purchase_price} onChange={e => setCreateForm({ ...createForm, product_purchase_price: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Selling Price</label>
+                                        <input type="text" value={createForm.product_selling_price} onChange={e => setCreateForm({ ...createForm, product_selling_price: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Stock</label>
+                                        <input type="text" value={createForm.product_stock} onChange={e => setCreateForm({ ...createForm, product_stock: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Category</label>
+                                        <input type="text" value={createForm.product_category} onChange={e => setCreateForm({ ...createForm, product_category: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Supplier</label>
+                                        <input type="text" value={createForm.product_supplier} onChange={e => setCreateForm({ ...createForm, product_supplier: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Image</label>
+                                        <input type="text" value={createForm.product_image} onChange={e => setCreateForm({ ...createForm, product_image: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Status</label>
+                                        <input type="text" value={createForm.product_status} onChange={e => setCreateForm({ ...createForm, product_status: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button type="submit" className="btn-primary">Create</button>
+                                        <button type="button" className="btn-cancel" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    {isEditOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Edit Product</h2>
+                                <form onSubmit={handleEditSubmit}>
+                                    <div className="modal-field">
+                                        <label>Product Name</label>
+                                        <input type="text" value={editForm.product_name} onChange={e => setEditForm({ ...editForm, product_name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Description</label>
+                                        <input type="text" value={editForm.product_description} onChange={e => setEditForm({ ...editForm, product_description: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Purchase Price</label>
+                                        <input type="text" value={editForm.product_purchase_price} onChange={e => setEditForm({ ...editForm, product_purchase_price: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Selling Price</label>
+                                        <input type="text" value={editForm.product_selling_price} onChange={e => setEditForm({ ...editForm, product_selling_price: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Stock</label>
+                                        <input type="text" value={editForm.product_stock} onChange={e => setEditForm({ ...editForm, product_stock: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Category</label>
+                                        <input type="text" value={editForm.product_category} onChange={e => setEditForm({ ...editForm, product_category: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Supplier</label>
+                                        <input type="text" value={editForm.product_supplier} onChange={e => setEditForm({ ...editForm, product_supplier: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Image</label>
+                                        <input type="text" value={editForm.product_image} onChange={e => setEditForm({ ...editForm, product_image: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Product Status</label>
+                                        <input type="text" value={editForm.product_status} onChange={e => setEditForm({ ...editForm, product_status: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button type="submit" className="btn-primary">Save</button>
+                                        <button type="button" className="btn-cancel" onClick={() => setIsEditOpen(false)}>Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                     <table className="table">
                         <thead>
                             <tr>
@@ -505,7 +716,7 @@ const SuperAdminDashboardProducts = () => {
                                     <td>{p.supplier?.Name || p.supplier}</td>
                                     <td><img src={p.image} alt={p.product_name} width="40" /></td>
                                     <td>{p.status}</td>
-                                    <td><button>Edit</button> <button>Delete</button></td>
+                                    <td><button className="edit-button" onClick={() => edit(p)}>Edit</button> <button className="delete-button" onClick={() => handleDelete(p._id)}>Delete</button></td>
                                 </tr>
                             ))}
                         </tbody>
