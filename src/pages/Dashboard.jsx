@@ -10,6 +10,7 @@ import SidebarUser from "../Components/SidebarUser";
 //---------------------------------------
 //----------- ADMIN DASHBOARD -----------
 //---------------------------------------
+
 const AdminDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -229,6 +230,7 @@ const AdminDashboardOrders = () => {
 //---------------------------------------
 //----------- USER DASHBOARD ------------
 //---------------------------------------
+
 const UserDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -726,6 +728,7 @@ const SuperAdminDashboardProducts = () => {
         </div>
     );
 };
+
 const SuperAdminDashboardCategories = () => {
     const [categories, setCategories] = useState([]);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -834,7 +837,7 @@ const SuperAdminDashboardCategories = () => {
                 <div className="content">
                     <h1>Categories</h1>
                     <button className="create-btn" onClick={() => setIsCreateOpen(true)}>Create Category</button>
-                    
+
                     {isCreateOpen && (
                         <div className="modal-overlay">
                             <div className="modal">
@@ -856,7 +859,7 @@ const SuperAdminDashboardCategories = () => {
                             </div>
                         </div>
                     )}
-                    
+
                     {isEditOpen && (
                         <div className="modal-overlay">
                             <div className="modal">
@@ -906,6 +909,7 @@ const SuperAdminDashboardCategories = () => {
         </div>
     );
 };
+
 const SuperAdminDashboardSuppliers = () => {
     const [suppliers, setSuppliers] = useState([]);
     const navigate = useNavigate();
@@ -957,7 +961,6 @@ const SuperAdminDashboardSuppliers = () => {
         </div>
     );
 };
-
 
 const SuperAdminDashboardRoles = () => {
     const [roles, setRoles] = useState([]);
@@ -1142,6 +1145,7 @@ const SuperAdminDashboardRoles = () => {
         </div>
     );
 };
+
 const SuperAdminDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
