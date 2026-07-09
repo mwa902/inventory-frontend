@@ -1316,6 +1316,196 @@ const SuperAdminDashboardRoles = () => {
     );
 };
 
+const SuperAdminDashboardOrders = () => {
+    const [orders, setOrders] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
+    const [createMode, setCreateMode] = useState(false);
+    const [createForm, setCreateForm] = useState({ supplier_id: '', product_id: '', quantity: '' });
+    const navigate = useNavigate();
+
+    const loadOrders = (token) => {
+        fetch('http://localhost:5000/api/order', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setOrders(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            loadOrders(token);
+            fetch('http://localhost:5000/api/product', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setProducts(Array.isArray(data) ? data : []))
+                .catch(() => { });
+            fetch('http://localhost:5000/api/supplier', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setSuppliers(Array.isArray(data) ? data : []))
+                .catch(() => { });
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }, [navigate]);
+
+    const openCreate = () => {
+        setCreateForm({ supplier_id: '', product_id: '', quantity: '' });
+        setCreateMode(true);
+    };
+
+    const handleCreateSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:5000/api/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(createForm)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Order creation failed');
+            alert('Order created successfully!');
+            setCreateMode(false);
+            loadOrders(token);
+        } catch (error) {
+            alert(error.message || 'Order creation failed');
+        }
+    };
+
+    const handleConfirm = async (orderId) => {
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ order_id: orderId, status: 'Confirmed' })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Confirm failed');
+            alert(data.message || 'Order confirmed!');
+            loadOrders(token);
+        } catch (error) {
+            alert(error.message || 'Confirm failed');
+        }
+    };
+
+    const handleCancel = async (orderId) => {
+        if (!confirm('Are you sure you want to cancel this order?')) return;
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ order_id: orderId, status: 'Cancelled' })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Cancel failed');
+            alert(data.message || 'Order cancelled!');
+            loadOrders(token);
+        } catch (error) {
+            alert(error.message || 'Cancel failed');
+        }
+    };
+
+    const getProductName = (id) => {
+        const p = products.find(p => p._id === id);
+        return p ? p.product_name : id;
+    };
+
+    const getSupplierName = (id) => {
+        const s = suppliers.find(s => s._id === id);
+        return s ? s.Name : id;
+    };
+
+    return (
+        <div>
+            <HeaderSuperAdmin />
+            <div className="dashboard-layout">
+                <SidebarSuperAdmin />
+                <div className="content">
+                    <h1>Orders</h1>
+                    <button className="create-btn" onClick={openCreate}>Create Order</button>
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Supplier</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {orders.map(o => (
+                                <tr key={o._id}>
+                                    <td>{getSupplierName(o.supplier_id)}</td>
+                                    <td>{getProductName(o.product_id)}</td>
+                                    <td>{o.quantity}</td>
+                                    <td>{o.subtotal || '-'}</td>
+                                    <td>
+                                        <span className={`status-badge status-${o.orderStatus?.toLowerCase()}`}>
+                                            {o.orderStatus}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {o.orderStatus === 'Pending' && (
+                                            <>
+                                                <button className="edit-button" onClick={() => handleConfirm(o._id)}>Confirm</button>
+                                                {' '}
+                                                <button className="delete-button" onClick={() => handleCancel(o._id)}>Cancel</button>
+                                            </>
+                                        )}
+                                        {o.orderStatus !== 'Pending' && <span>—</span>}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {createMode && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h2>Create Order</h2>
+                        <form onSubmit={handleCreateSubmit}>
+                            <div className="modal-field">
+                                <label>Supplier</label>
+                                <select value={createForm.supplier_id} onChange={e => setCreateForm({ ...createForm, supplier_id: e.target.value })} required>
+                                    <option value="">Select Supplier</option>
+                                    {suppliers.map(s => (<option key={s._id} value={s._id}>{s.Name}</option>))}
+                                </select>
+                            </div>
+                            <div className="modal-field">
+                                <label>Product</label>
+                                <select value={createForm.product_id} onChange={e => setCreateForm({ ...createForm, product_id: e.target.value })} required>
+                                    <option value="">Select Product</option>
+                                    {products.map(p => (<option key={p._id} value={p._id}>{p.product_name}</option>))}
+                                </select>
+                            </div>
+                            <div className="modal-field">
+                                <label>Quantity</label>
+                                <input type="number" min="1" value={createForm.quantity} onChange={e => setCreateForm({ ...createForm, quantity: e.target.value })} required />
+                            </div>
+                            <div className="modal-actions">
+                                <button type="submit" className="btn-primary">Create</button>
+                                <button type="button" className="btn-cancel" onClick={() => setCreateMode(false)}>Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const SuperAdminDashboard = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -1364,4 +1554,4 @@ const SuperAdminDashboard = () => {
     );
 };
 
-export { SuperAdminDashboardRoles, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, AdminDashboard, AdminDashboardOrders, UserDashboard, SuperAdminDashboard };
+export { SuperAdminDashboardOrders, SuperAdminDashboardRoles, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, AdminDashboard, AdminDashboardOrders, UserDashboard, SuperAdminDashboard };
