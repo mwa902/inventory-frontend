@@ -8,6 +8,38 @@ import HeaderUser from "../Components/HeaderUser";
 import SidebarUser from "../Components/SidebarUser";
 
 //---------------------------------------
+//----------- USER DASHBOARD ------------
+//---------------------------------------
+
+const UserDashboard = () => {
+    const [user, setUser] = useState(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+            setUser(JSON.parse(stored));
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }, [navigate]);
+
+
+    return (
+        <div>
+            <HeaderUser />
+            <div className="dashboard-layout">
+                <SidebarUser />
+                <div className="content">
+                    <h1 className="welcome">Welcome {user?.name || 'User'}</h1>
+
+                </div>
+            </div>
+        </div>
+    );
+};
+
+//---------------------------------------
 //----------- ADMIN DASHBOARD -----------
 //---------------------------------------
 
@@ -229,6 +261,8 @@ const AdminDashboardOrders = () => {
 
 const AdminDashboardProducts = () => {
     const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
     const [editForm, setEditForm] = useState({
         product_name: "",
         product_description: "",
@@ -264,12 +298,33 @@ const AdminDashboardProducts = () => {
                 .then(res => res.json())
                 .then(data => setProducts(Array.isArray(data) ? data : []))
                 .catch(() => { });
+            fetch('http://localhost:5000/api/category', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setCategories(Array.isArray(data) ? data : []))
+                .catch(() => { });
+            fetch('http://localhost:5000/api/supplier', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setSuppliers(Array.isArray(data) ? data : []))
+                .catch(() => { });
         } else {
             navigate('/UserLogin', { replace: true });
         }
     }, [navigate]);
     const edit = (p) => {
-        setEditForm(p);
+        setEditForm({
+            ...p,
+            product_purchase_price: p.purchase_price,
+            product_selling_price: p.selling_price,
+            product_stock: p.Stock,
+            product_category: p.category?._id || p.category,
+            product_supplier: p.supplier?._id || p.supplier,
+            product_image: p.image || "",
+            product_status: p.status || "",
+        });
         setIsEditOpen(true);
     };
     const handleCreateSubmit = (e) => {
@@ -281,7 +336,17 @@ const AdminDashboardProducts = () => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(createForm),
+            body: JSON.stringify({
+                product_name: createForm.product_name,
+                product_description: createForm.product_description,
+                purchase_price: Number(createForm.product_purchase_price),
+                selling_price: Number(createForm.product_selling_price),
+                Stock: Number(createForm.product_stock),
+                category: createForm.product_category,
+                supplier: createForm.product_supplier,
+                image: createForm.product_image,
+                status: createForm.product_status
+            }),
         })
             .then(res => res.json())
             .then(data => {
@@ -305,7 +370,7 @@ const AdminDashboardProducts = () => {
             })
             .catch(err => alert("Something went wrong!"));
     };
-    const handleUpdateSubmit = (e) => {
+    const handleEditSubmit = (e) => {
         e.preventDefault();
         const token = localStorage.getItem("token");
         fetch(`http://localhost:5000/api/product/${editForm._id}`, {
@@ -314,7 +379,17 @@ const AdminDashboardProducts = () => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(editForm),
+            body: JSON.stringify({
+                product_name: editForm.product_name,
+                product_description: editForm.product_description,
+                purchase_price: Number(editForm.product_purchase_price),
+                selling_price: Number(editForm.product_selling_price),
+                Stock: Number(editForm.product_stock),
+                category: editForm.product_category,
+                supplier: editForm.product_supplier,
+                image: editForm.product_image,
+                status: editForm.product_status
+            }),
         })
             .then(res => res.json())
             .then(data => {
@@ -387,15 +462,24 @@ const AdminDashboardProducts = () => {
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Stock</label>
-                                        <input type="text" value={createForm.product_stock} onChange={e => setCreateForm({ ...createForm, product_stock: e.target.value })} required />
+                                        <input type="number" min="0" value={createForm.product_stock} onChange={e => {
+                                            const stock = e.target.value;
+                                            setCreateForm({ ...createForm, product_stock: stock, product_status: Number(stock) > 0 ? "InStock" : "Sold Out" });
+                                        }} required />
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Category</label>
-                                        <input type="text" value={createForm.product_category} onChange={e => setCreateForm({ ...createForm, product_category: e.target.value })} required />
+                                        <select value={createForm.product_category} onChange={e => setCreateForm({ ...createForm, product_category: e.target.value })} required>
+                                            <option value="">Select Category</option>
+                                            {categories.map(c => <option key={c._id} value={c._id}>{c.category_name}</option>)}
+                                        </select>
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Supplier</label>
-                                        <input type="text" value={createForm.product_supplier} onChange={e => setCreateForm({ ...createForm, product_supplier: e.target.value })} required />
+                                        <select value={createForm.product_supplier} onChange={e => setCreateForm({ ...createForm, product_supplier: e.target.value })} required>
+                                            <option value="">Select Supplier</option>
+                                            {suppliers.map(s => <option key={s._id} value={s._id}>{s.Name}</option>)}
+                                        </select>
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Image</label>
@@ -403,7 +487,11 @@ const AdminDashboardProducts = () => {
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Status</label>
-                                        <input type="text" value={createForm.product_status} onChange={e => setCreateForm({ ...createForm, product_status: e.target.value })} required />
+                                        <select value={createForm.product_status} disabled required>
+                                            <option value="">Select Status</option>
+                                            <option value="InStock">InStock</option>
+                                            <option value="Sold Out">Sold Out</option>
+                                        </select>
                                     </div>
                                     <div className="modal-actions">
                                         <button type="submit" className="btn-primary">Create</button>
@@ -436,15 +524,24 @@ const AdminDashboardProducts = () => {
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Stock</label>
-                                        <input type="text" value={editForm.product_stock} onChange={e => setEditForm({ ...editForm, product_stock: e.target.value })} required />
+                                        <input type="number" min="0" value={editForm.product_stock} onChange={e => {
+                                            const stock = e.target.value;
+                                            setEditForm({ ...editForm, product_stock: stock, product_status: Number(stock) > 0 ? "InStock" : "Sold Out" });
+                                        }} required />
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Category</label>
-                                        <input type="text" value={editForm.product_category} onChange={e => setEditForm({ ...editForm, product_category: e.target.value })} required />
+                                        <select value={editForm.product_category} onChange={e => setEditForm({ ...editForm, product_category: e.target.value })} required>
+                                            <option value="">Select Category</option>
+                                            {categories.map(c => <option key={c._id} value={c._id}>{c.category_name}</option>)}
+                                        </select>
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Supplier</label>
-                                        <input type="text" value={editForm.product_supplier} onChange={e => setEditForm({ ...editForm, product_supplier: e.target.value })} required />
+                                        <select value={editForm.product_supplier} onChange={e => setEditForm({ ...editForm, product_supplier: e.target.value })} required>
+                                            <option value="">Select Supplier</option>
+                                            {suppliers.map(s => <option key={s._id} value={s._id}>{s.Name}</option>)}
+                                        </select>
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Image</label>
@@ -452,7 +549,11 @@ const AdminDashboardProducts = () => {
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Status</label>
-                                        <input type="text" value={editForm.product_status} onChange={e => setEditForm({ ...editForm, product_status: e.target.value })} required />
+                                        <select value={editForm.product_status} disabled required>
+                                            <option value="">Select Status</option>
+                                            <option value="InStock">InStock</option>
+                                            <option value="Sold Out">Sold Out</option>
+                                        </select>
                                     </div>
                                     <div className="modal-actions">
                                         <button type="submit" className="btn-primary">Save</button>
@@ -686,7 +787,7 @@ const AdminDashboardSuppliers = () => {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editForm, setEditForm] = useState({ Name: "", company: "", phone_number: "", status: "" });
-    const [createForm, setCreateForm] = useState({ Name: "", company: "", phone_number: "", status: "" });
+    const [createForm, setCreateForm] = useState({ Name: "", company: "", phone_number: "" });
     const navigate = useNavigate();
 
     const loadSuppliers = async () => {
@@ -725,7 +826,7 @@ const AdminDashboardSuppliers = () => {
                         alert(data.error);
                     } else {
                         setIsCreateOpen(false);
-                        setCreateForm({ Name: "", company: "", phone_number: "", status: "" });
+                        setCreateForm({ Name: "", company: "", phone_number: "" });
                         loadSuppliers();
                         alert('Supplier created successfully');
                     }
@@ -821,14 +922,7 @@ const AdminDashboardSuppliers = () => {
                                         <label>Supplier Company</label>
                                         <input type="text" value={createForm.company} onChange={(e) => setCreateForm({ ...createForm, company: e.target.value })} required />
                                     </div>
-                                    <div className="modal-field">
-                                        <label>Supplier Status</label>
-                                        <select value={createForm.status} onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })} required>
-                                            <option value="" disabled>Select Status</option>
-                                            <option value="Confirm">Confirm</option>
-                                            <option value="Cancel">Cancel</option>
-                                        </select>
-                                    </div>
+
                                     <div className="modal-actions">
                                         <button className="btn-cancel" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</button>
                                         <button className="btn-primary" type="submit">Create</button>
@@ -859,6 +953,7 @@ const AdminDashboardSuppliers = () => {
                                         <label>Supplier Status</label>
                                         <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} required>
                                             <option value="" disabled>Select Status</option>
+                                            <option value="Pending">Pending</option>
                                             <option value="Confirm">Confirm</option>
                                             <option value="Cancel">Cancel</option>
                                         </select>
@@ -897,38 +992,6 @@ const AdminDashboardSuppliers = () => {
                             ))}
                         </tbody>
                     </table>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-//---------------------------------------
-//----------- USER DASHBOARD ------------
-//---------------------------------------
-
-const UserDashboard = () => {
-    const [user, setUser] = useState(null);
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            setUser(JSON.parse(stored));
-        } else {
-            navigate('/UserLogin', { replace: true });
-        }
-    }, [navigate]);
-
-
-    return (
-        <div>
-            <HeaderUser />
-            <div className="dashboard-layout">
-                <SidebarUser />
-                <div className="content">
-                    <h1 className="welcome">Welcome {user?.name || 'User'}</h1>
-
                 </div>
             </div>
         </div>
@@ -1134,6 +1197,8 @@ const SuperAdminDashboardUsers = () => {
 
 const SuperAdminDashboardProducts = () => {
     const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
     const [editForm, setEditForm] = useState({
         product_name: "",
         product_description: "",
@@ -1169,12 +1234,33 @@ const SuperAdminDashboardProducts = () => {
                 .then(res => res.json())
                 .then(data => setProducts(Array.isArray(data) ? data : []))
                 .catch(() => { });
+            fetch('http://localhost:5000/api/category', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setCategories(Array.isArray(data) ? data : []))
+                .catch(() => { });
+            fetch('http://localhost:5000/api/supplier', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => setSuppliers(Array.isArray(data) ? data : []))
+                .catch(() => { });
         } else {
             navigate('/UserLogin', { replace: true });
         }
     }, [navigate]);
     const edit = (p) => {
-        setEditForm(p);
+        setEditForm({
+            ...p,
+            product_purchase_price: p.purchase_price,
+            product_selling_price: p.selling_price,
+            product_stock: p.Stock,
+            product_category: p.category?._id || p.category,
+            product_supplier: p.supplier?._id || p.supplier,
+            product_image: p.image || "",
+            product_status: p.status || "",
+        });
         setIsEditOpen(true);
     };
     const handleCreateSubmit = (e) => {
@@ -1186,7 +1272,17 @@ const SuperAdminDashboardProducts = () => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(createForm),
+            body: JSON.stringify({
+                product_name: createForm.product_name,
+                product_description: createForm.product_description,
+                purchase_price: Number(createForm.product_purchase_price),
+                selling_price: Number(createForm.product_selling_price),
+                Stock: Number(createForm.product_stock),
+                category: createForm.product_category,
+                supplier: createForm.product_supplier,
+                image: createForm.product_image,
+                status: createForm.product_status
+            }),
         })
             .then(res => res.json())
             .then(data => {
@@ -1210,7 +1306,7 @@ const SuperAdminDashboardProducts = () => {
             })
             .catch(err => alert("Something went wrong!"));
     };
-    const handleUpdateSubmit = (e) => {
+    const handleEditSubmit = (e) => {
         e.preventDefault();
         const token = localStorage.getItem("token");
         fetch(`http://localhost:5000/api/product/${editForm._id}`, {
@@ -1219,7 +1315,17 @@ const SuperAdminDashboardProducts = () => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(editForm),
+            body: JSON.stringify({
+                product_name: editForm.product_name,
+                product_description: editForm.product_description,
+                purchase_price: Number(editForm.product_purchase_price),
+                selling_price: Number(editForm.product_selling_price),
+                Stock: Number(editForm.product_stock),
+                category: editForm.product_category,
+                supplier: editForm.product_supplier,
+                image: editForm.product_image,
+                status: editForm.product_status
+            }),
         })
             .then(res => res.json())
             .then(data => {
@@ -1292,15 +1398,24 @@ const SuperAdminDashboardProducts = () => {
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Stock</label>
-                                        <input type="text" value={createForm.product_stock} onChange={e => setCreateForm({ ...createForm, product_stock: e.target.value })} required />
+                                        <input type="number" min="0" value={createForm.product_stock} onChange={e => {
+                                            const stock = e.target.value;
+                                            setCreateForm({ ...createForm, product_stock: stock, product_status: Number(stock) > 0 ? "InStock" : "Sold Out" });
+                                        }} required />
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Category</label>
-                                        <input type="text" value={createForm.product_category} onChange={e => setCreateForm({ ...createForm, product_category: e.target.value })} required />
+                                        <select value={createForm.product_category} onChange={e => setCreateForm({ ...createForm, product_category: e.target.value })} required>
+                                            <option value="">Select Category</option>
+                                            {categories.map(c => <option key={c._id} value={c._id}>{c.category_name}</option>)}
+                                        </select>
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Supplier</label>
-                                        <input type="text" value={createForm.product_supplier} onChange={e => setCreateForm({ ...createForm, product_supplier: e.target.value })} required />
+                                        <select value={createForm.product_supplier} onChange={e => setCreateForm({ ...createForm, product_supplier: e.target.value })} required>
+                                            <option value="">Select Supplier</option>
+                                            {suppliers.map(s => <option key={s._id} value={s._id}>{s.Name}</option>)}
+                                        </select>
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Image</label>
@@ -1308,7 +1423,11 @@ const SuperAdminDashboardProducts = () => {
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Status</label>
-                                        <input type="text" value={createForm.product_status} onChange={e => setCreateForm({ ...createForm, product_status: e.target.value })} required />
+                                        <select value={createForm.product_status} disabled required>
+                                            <option value="">Select Status</option>
+                                            <option value="InStock">InStock</option>
+                                            <option value="Sold Out">Sold Out</option>
+                                        </select>
                                     </div>
                                     <div className="modal-actions">
                                         <button type="submit" className="btn-primary">Create</button>
@@ -1341,15 +1460,24 @@ const SuperAdminDashboardProducts = () => {
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Stock</label>
-                                        <input type="text" value={editForm.product_stock} onChange={e => setEditForm({ ...editForm, product_stock: e.target.value })} required />
+                                        <input type="number" min="0" value={editForm.product_stock} onChange={e => {
+                                            const stock = e.target.value;
+                                            setEditForm({ ...editForm, product_stock: stock, product_status: Number(stock) > 0 ? "InStock" : "Sold Out" });
+                                        }} required />
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Category</label>
-                                        <input type="text" value={editForm.product_category} onChange={e => setEditForm({ ...editForm, product_category: e.target.value })} required />
+                                        <select value={editForm.product_category} onChange={e => setEditForm({ ...editForm, product_category: e.target.value })} required>
+                                            <option value="">Select Category</option>
+                                            {categories.map(c => <option key={c._id} value={c._id}>{c.category_name}</option>)}
+                                        </select>
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Supplier</label>
-                                        <input type="text" value={editForm.product_supplier} onChange={e => setEditForm({ ...editForm, product_supplier: e.target.value })} required />
+                                        <select value={editForm.product_supplier} onChange={e => setEditForm({ ...editForm, product_supplier: e.target.value })} required>
+                                            <option value="">Select Supplier</option>
+                                            {suppliers.map(s => <option key={s._id} value={s._id}>{s.Name}</option>)}
+                                        </select>
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Image</label>
@@ -1357,7 +1485,11 @@ const SuperAdminDashboardProducts = () => {
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Status</label>
-                                        <input type="text" value={editForm.product_status} onChange={e => setEditForm({ ...editForm, product_status: e.target.value })} required />
+                                        <select value={editForm.product_status} disabled required>
+                                            <option value="">Select Status</option>
+                                            <option value="InStock">InStock</option>
+                                            <option value="Sold Out">Sold Out</option>
+                                        </select>
                                     </div>
                                     <div className="modal-actions">
                                         <button type="submit" className="btn-primary">Save</button>
@@ -1591,7 +1723,7 @@ const SuperAdminDashboardSuppliers = () => {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editForm, setEditForm] = useState({ Name: "", company: "", phone_number: "", status: "" });
-    const [createForm, setCreateForm] = useState({ Name: "", company: "", phone_number: "", status: "" });
+    const [createForm, setCreateForm] = useState({ Name: "", company: "", phone_number: "" });
     const navigate = useNavigate();
 
     const loadSuppliers = async () => {
@@ -1630,7 +1762,7 @@ const SuperAdminDashboardSuppliers = () => {
                         alert(data.error);
                     } else {
                         setIsCreateOpen(false);
-                        setCreateForm({ Name: "", company: "", phone_number: "", status: "" });
+                        setCreateForm({ Name: "", company: "", phone_number: "" });
                         loadSuppliers();
                         alert('Supplier created successfully');
                     }
@@ -1726,14 +1858,7 @@ const SuperAdminDashboardSuppliers = () => {
                                         <label>Supplier Company</label>
                                         <input type="text" value={createForm.company} onChange={(e) => setCreateForm({ ...createForm, company: e.target.value })} required />
                                     </div>
-                                    <div className="modal-field">
-                                        <label>Supplier Status</label>
-                                        <select value={createForm.status} onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })} required>
-                                            <option value="" disabled>Select Status</option>
-                                            <option value="Confirm">Confirm</option>
-                                            <option value="Cancel">Cancel</option>
-                                        </select>
-                                    </div>
+
                                     <div className="modal-actions">
                                         <button className="btn-cancel" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</button>
                                         <button className="btn-primary" type="submit">Create</button>
@@ -1764,6 +1889,7 @@ const SuperAdminDashboardSuppliers = () => {
                                         <label>Supplier Status</label>
                                         <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} required>
                                             <option value="" disabled>Select Status</option>
+                                            <option value="Pending">Pending</option>
                                             <option value="Confirm">Confirm</option>
                                             <option value="Cancel">Cancel</option>
                                         </select>
