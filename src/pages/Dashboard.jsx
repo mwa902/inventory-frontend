@@ -912,9 +912,13 @@ const SuperAdminDashboardCategories = () => {
 
 const SuperAdminDashboardSuppliers = () => {
     const [suppliers, setSuppliers] = useState([]);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editForm, setEditForm] = useState({ Name: "", company: "", phone_number: "", status: "" });
+    const [createForm, setCreateForm] = useState({ Name: "", company: "", phone_number: "", status: "" });
     const navigate = useNavigate();
 
-    useEffect(() => {
+    const loadSuppliers = async () => {
         const token = localStorage.getItem('token');
         if (token) {
             fetch('http://localhost:5000/api/supplier', {
@@ -926,7 +930,100 @@ const SuperAdminDashboardSuppliers = () => {
         } else {
             navigate('/UserLogin', { replace: true });
         }
+    }
+
+    useEffect(() => {
+        loadSuppliers();
     }, [navigate]);
+
+    const createSupplier = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch('http://localhost:5000/api/supplier', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(createForm)
+            })
+                .then(res => res.json())
+                .then((data) => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        setIsCreateOpen(false);
+                        setCreateForm({ Name: "", company: "", phone_number: "", status: "" });
+                        loadSuppliers();
+                        alert('Supplier created successfully');
+                    }
+                })
+                .catch(() => alert('Failed to create supplier'));
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }
+
+    const openEdit = (supplier) => {
+        setEditForm(supplier);
+        setIsEditOpen(true);
+    }
+
+    const updateSupplier = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`http://localhost:5000/api/supplier/${editForm._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(editForm)
+            })
+                .then(res => res.json())
+                .then((data) => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        setIsEditOpen(false);
+                        loadSuppliers();
+                        alert('Supplier updated successfully');
+                    }
+                })
+                .catch(() => alert('Failed to update supplier'));
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }
+
+    const deleteSupplier = async (id) => {
+        if (!confirm('Are you sure you want to delete this supplier?')) return;
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`http://localhost:5000/api/supplier/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                }
+            })
+                .then(res => res.json())
+                .then((data) => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        loadSuppliers();
+                        alert('Supplier deleted successfully');
+                    }
+                })
+                .catch(() => alert('Failed to delete supplier'));
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }
+
     return (
         <div>
             <HeaderSuperAdmin />
@@ -934,6 +1031,75 @@ const SuperAdminDashboardSuppliers = () => {
                 <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Suppliers</h1>
+                    <button onClick={() => setIsCreateOpen(true)} className="create-btn">Add Supplier</button>
+
+                    {isCreateOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Add Supplier</h2>
+                                <form onSubmit={createSupplier}>
+                                    <div className="modal-field">
+                                        <label>Supplier Name</label>
+                                        <input type="text" value={createForm.Name} onChange={(e) => setCreateForm({ ...createForm, Name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Phone</label>
+                                        <input type="text" value={createForm.phone_number} onChange={(e) => setCreateForm({ ...createForm, phone_number: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Company</label>
+                                        <input type="text" value={createForm.company} onChange={(e) => setCreateForm({ ...createForm, company: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Status</label>
+                                        <select value={createForm.status} onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })} required>
+                                            <option value="" disabled>Select Status</option>
+                                            <option value="Confirm">Confirm</option>
+                                            <option value="Cancel">Cancel</option>
+                                        </select>
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Create</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {isEditOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>Edit Supplier</h2>
+                                <form onSubmit={updateSupplier}>
+                                    <div className="modal-field">
+                                        <label>Supplier Name</label>
+                                        <input type="text" value={editForm.Name} onChange={(e) => setEditForm({ ...editForm, Name: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Phone</label>
+                                        <input type="text" value={editForm.phone_number} onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Company</label>
+                                        <input type="text" value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} required />
+                                    </div>
+                                    <div className="modal-field">
+                                        <label>Supplier Status</label>
+                                        <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} required>
+                                            <option value="" disabled>Select Status</option>
+                                            <option value="Confirm">Confirm</option>
+                                            <option value="Cancel">Cancel</option>
+                                        </select>
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button className="btn-cancel" type="button" onClick={() => setIsEditOpen(false)}>Cancel</button>
+                                        <button className="btn-primary" type="submit">Update</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                     <table className="table">
                         <thead>
                             <tr>
@@ -951,7 +1117,11 @@ const SuperAdminDashboardSuppliers = () => {
                                     <td>{s.phone_number}</td>
                                     <td>{s.company}</td>
                                     <td>{s.status}</td>
-                                    <td><button>Edit</button> <button>Delete</button></td>
+                                    <td>
+                                        <button className="edit-button" onClick={() => openEdit(s)}>Edit</button>
+                                        {' '}
+                                        <button className="delete-button" onClick={() => deleteSupplier(s._id)}>Delete</button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
