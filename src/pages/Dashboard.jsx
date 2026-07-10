@@ -2183,7 +2183,7 @@ const SuperAdminDashboardOrders = () => {
     const handleConfirm = async (orderId) => {
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+            const res = await fetch(`http://localhost:5000/api/order/confirmOrder`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ order_id: orderId, status: 'Confirmed' })
@@ -2201,7 +2201,7 @@ const SuperAdminDashboardOrders = () => {
         if (!confirm('Are you sure you want to cancel this order?')) return;
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`http://localhost:5000/api/order/${orderId}`, {
+            const res = await fetch(`http://localhost:5000/api/order/confirmOrder`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ order_id: orderId, status: 'Cancelled' })
