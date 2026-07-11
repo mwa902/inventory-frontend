@@ -359,3 +359,214 @@
     background-color: #f8d7da;
     color: #721c24;
 }
+
+/* Checkout / POS */
+.products-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.product-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    width: 180px;
+    text-align: center;
+}
+
+.product-card.sold-out {
+    opacity: 0.5;
+}
+
+.product-card-img {
+    border-radius: 4px;
+}
+
+.product-card-title {
+    margin: 8px 0 4px;
+}
+
+.product-card-price {
+    margin: 0 0 4px;
+    color: #555;
+}
+
+.product-card-stock {
+    margin: 0 0 8px;
+    font-size: 12px;
+}
+
+.stock-in {
+    color: green;
+}
+
+.stock-out {
+    color: red;
+}
+
+.btn-add {
+    font-size: 12px;
+    padding: 4px 10px;
+}
+
+.empty-cart-msg {
+    color: #888;
+}
+
+.checkout-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.inline-field {
+    margin: 0;
+}
+
+.receipt-history-section {
+    margin-top: 32px;
+}
+
+.receipt-table {
+    margin-top: 12px;
+}
+
+.receipt-id-cell {
+    font-size: 11px;
+    color: #888;
+}
+
+.checkout-search-input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    outline: none;
+    margin: 0;
+    font-size: 15px;
+}
+
+.checkout-search-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 30px;
+    margin-top: 10px;
+}
+
+.search-autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.autocomplete-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover {
+    background: #f8f9fa;
+}
+
+.autocomplete-item-name {
+    font-weight: 500;
+    font-size: 15px;
+    color: #333;
+}
+
+.autocomplete-item-stock {
+    font-size: 13px;
+}
+
+.autocomplete-item-empty {
+    cursor: default;
+}
+
+.autocomplete-empty-text {
+    color: #888;
+}
+
+.print-modal {
+    max-width: 400px;
+}
+
+.print-modal-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.print-modal-row {
+    margin-bottom: 10px;
+}
+
+.print-modal-total {
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+.print-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.report-section {
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+.report-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.report-select {
+    width: 200px;
+    margin: 0;
+}
+
+.report-results {
+    background: #f0f8ff;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #b3d4fc;
+}
+
+.report-results-title {
+    margin: 0 0 10px 0;
+    color: #0056b3;
+}
+
+.report-results-text {
+    margin: 5px 0;
+}
+
+.report-results-total {
+    margin: 5px 0;
+    font-size: 18px;
+    color: #28a745;
+}

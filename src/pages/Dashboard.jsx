@@ -998,6 +998,347 @@ const AdminDashboardSuppliers = () => {
     );
 };
 
+const AdminDashboardCheckout = () => {
+    const [products, setProducts] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [cart, setCart] = useState([]);
+    const [paymentMethod, setPaymentMethod] = useState('Cash');
+    const [receipts, setReceipts] = useState([]);
+    const [showReceipts, setShowReceipts] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [printReceipt, setPrintReceipt] = useState(null);
+    const [showPrintModal, setShowPrintModal] = useState(false);
+    const [reportType, setReportType] = useState('week');
+    const [reportData, setReportData] = useState(null);
+    const navigate = useNavigate();
+
+    const loadProducts = (token) => {
+        fetch('http://localhost:5000/api/product', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setProducts(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
+
+    const loadReceipts = (token) => {
+        fetch('http://localhost:5000/api/receipt', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.json())
+            .then(data => setReceipts(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            loadProducts(token);
+            loadReceipts(token);
+        } else {
+            navigate('/UserLogin', { replace: true });
+        }
+    }, [navigate]);
+
+    const addToCart = (product) => {
+        if (product.status === 'Sold Out' || product.Stock <= 0) {
+            alert('This product is out of stock.');
+            return;
+        }
+        const existing = cart.find(i => i._id === product._id);
+        if (existing) {
+            if (existing.qty >= product.Stock) {
+                alert('Cannot exceed available stock.');
+                return;
+            }
+            setCart(cart.map(i => i._id === product._id ? { ...i, qty: i.qty + 1 } : i));
+        } else {
+            setCart([...cart, { ...product, qty: 1 }]);
+        }
+    };
+
+    const updateQty = (_id, delta) => {
+        setCart(prev =>
+            prev
+                .map(i => {
+                    if (i._id !== _id) return i;
+                    const newQty = i.qty + delta;
+                    if (newQty <= 0) return null;
+                    if (newQty > i.Stock) { alert('Cannot exceed available stock.'); return i; }
+                    return { ...i, qty: newQty };
+                })
+                .filter(Boolean)
+        );
+    };
+
+    const removeFromCart = (_id) => {
+        setCart(cart.filter(i => i._id !== _id));
+    };
+
+    const placeOrder = async () => {
+        if (cart.length === 0) { alert('Cart is empty.'); return; }
+        const token = localStorage.getItem('token');
+        const userRaw = localStorage.getItem('user');
+        if (!token || !userRaw) { navigate('/UserLogin', { replace: true }); return; }
+        const user = JSON.parse(userRaw);
+
+        setLoading(true);
+        try {
+            let lastReceiptId = null;
+            await Promise.all(cart.map(async (item) => {
+                const lineTotal = (item.selling_price * item.qty).toFixed(2);
+                const res = await fetch('http://localhost:5000/api/receipt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        User: user._id,
+                        ProductDetail: item._id,
+                        total: lineTotal,
+                        paymentMethod,
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || data.message || 'Receipt creation failed');
+                lastReceiptId = data._id;
+
+                const newStock = item.Stock - item.qty;
+                const newStatus = newStock <= 0 ? 'Sold Out' : item.status;
+
+                await fetch(`http://localhost:5000/api/product/${item._id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ Stock: newStock, status: newStatus })
+                });
+            }));
+            alert('Order placed successfully! Receipts created.');
+            setCart([]);
+            loadProducts(token);
+            loadReceipts(token);
+
+            if (lastReceiptId) {
+                handlePrintReceipt(lastReceiptId);
+            }
+        } catch (err) {
+            alert(err.message || 'Failed to place order.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePrintReceipt = async (receiptId) => {
+        const token = localStorage.getItem('token');
+        if (!token) { navigate('/UserLogin', { replace: true }); return; }
+
+        try {
+            const res = await fetch(`http://localhost:5000/api/receipt/${receiptId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to fetch receipt');
+            const data = await res.json();
+            setPrintReceipt(data);
+            setShowPrintModal(true);
+        } catch (err) {
+            alert('Failed to fetch receipt for printing');
+        }
+    };
+
+    const fetchReport = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) { navigate('/UserLogin', { replace: true }); return; }
+        try {
+            const res = await fetch(`http://localhost:5000/api/receipt/report?type=${reportType}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || data.error || 'Failed to generate report');
+            setReportData(data);
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
+    const grandTotal = cart.reduce((sum, i) => sum + i.selling_price * i.qty, 0);
+
+    return (
+        <div>
+            <HeaderAdmin />
+            <div className="dashboard-layout">
+                <SidebarAdmin />
+                <div className="content">
+                    <h1>Checkout / POS</h1>
+                    <div className="checkout-search-container">
+                        <input
+                            type="text"
+                            placeholder="Type product name to search and add to cart..."
+                            className="modal-field checkout-search-input"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery.trim() && (
+                            <div className="search-autocomplete-dropdown">
+                                {products
+                                    .filter(p => (p.product_name || "").toLowerCase().includes(searchQuery.toLowerCase()))
+                                    .slice(0, 15)
+                                    .map(p => (
+                                        <div
+                                            key={p._id}
+                                            onClick={() => {
+                                                addToCart(p);
+                                                setSearchQuery("");
+                                            }}
+                                            className="autocomplete-item"
+                                        >
+                                            <div className="autocomplete-item-name">{p.product_name}</div>
+                                            <div className={`autocomplete-item-stock ${p.Stock > 0 && p.status !== 'Sold Out' ? 'stock-in' : 'stock-out'}`}>
+                                                {p.Stock > 0 && p.status !== 'Sold Out' ? `PKR ${p.selling_price} | Stock: ${p.Stock}` : 'Out of Stock'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                {products.filter(p => (p.product_name || "").toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                    <div className="autocomplete-item autocomplete-item-empty">
+                                        <div className="autocomplete-item-name autocomplete-empty-text">No products found.</div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <h2>Cart</h2>
+                    {cart.length === 0 ? (
+                        <p className="empty-cart-msg">Cart is empty. Add products above.</p>
+                    ) : (
+                        <>
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Unit Price</th>
+                                        <th>Quantity</th>
+                                        <th>Line Total</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cart.map(item => (
+                                        <tr key={item._id}>
+                                            <td>{item.product_name}</td>
+                                            <td>PKR {item.selling_price}</td>
+                                            <td>
+                                                <button className="edit-button" onClick={() => updateQty(item._id, -1)}>−</button>
+                                                {' '}{item.qty}{' '}
+                                                <button className="edit-button" onClick={() => updateQty(item._id, 1)}>+</button>
+                                            </td>
+                                            <td>PKR {(item.selling_price * item.qty).toFixed(2)}</td>
+                                            <td>
+                                                <button className="delete-button" onClick={() => removeFromCart(item._id)}>Remove</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            <div className="checkout-actions">
+                                <h3>Grand Total: PKR {grandTotal.toFixed(2)}</h3>
+                                <div className="modal-field inline-field">
+                                    <label>Payment Method</label>
+                                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Card">Card</option>
+                                        <option value="Online Transfer">Online Transfer</option>
+                                    </select>
+                                </div>
+                                <button className="create-btn" onClick={placeOrder} disabled={loading}>
+                                    {loading ? 'Processing...' : 'Place Order'}
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Report Generation */}
+                    <div className="receipt-history-section report-section">
+                        <h2>Sales Report</h2>
+                        <div className="report-controls">
+                            <select className="modal-field report-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>
+                                <option value="week">Past Week</option>
+                                <option value="month">Past Month</option>
+                                <option value="year">Past Year</option>
+                            </select>
+                            <button className="create-btn" onClick={fetchReport}>Generate Report</button>
+                        </div>
+                        {reportData && (
+                            <div className="report-results">
+                                <h3 className="report-results-title">{reportData.reportType.toUpperCase()} REPORT</h3>
+                                <p className="report-results-text"><strong>Total Receipts:</strong> {reportData.totalReceipts}</p>
+                                <p className="report-results-total"><strong>Total Sales:</strong> PKR {reportData.totalSales}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="receipt-history-section">
+                        <button className="edit-button" onClick={() => setShowReceipts(!showReceipts)}>
+                            {showReceipts ? 'Hide' : 'Show'} Receipt History ({receipts.length})
+                        </button>
+                        {showReceipts && (
+                            <table className="table receipt-table">
+                                <thead>
+                                    <tr>
+                                        <th>Receipt ID</th>
+                                        <th>User</th>
+                                        <th>Product</th>
+                                        <th>Total (PKR)</th>
+                                        <th>Payment Method</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {receipts.map(r => (
+                                        <tr key={r._id}>
+                                            <td className="receipt-id-cell">#{r._id.slice(-6)}</td>
+                                            <td>{r.User?.name || r.User}</td>
+                                            <td>{r.ProductDetail?.product_name || r.ProductDetail || r.ProducDetail}</td>
+                                            <td>PKR {r.total}</td>
+                                            <td>{r.paymentMethod}</td>
+                                            <td>
+                                                <button className="print-btn" onClick={() => handlePrintReceipt(r._id)}>
+                                                    Print
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+
+                {showPrintModal && printReceipt && printReceipt.receipt && (
+                    <div className="modal-overlay">
+                        <div className="modal print-modal">
+                            <h2 className="print-modal-header">Receipt</h2>
+                            <div className="print-modal-row">
+                                <strong>Receipt ID:</strong> {printReceipt.receipt._id}
+                            </div>
+                            <div className="print-modal-row">
+                                <strong>Product:</strong> {printReceipt.receipt.ProductDetail?.product_name || 'N/A'}
+                            </div>
+                            <div className="print-modal-row">
+                                <strong>Payment Method:</strong> {printReceipt.receipt.paymentMethod}
+                            </div>
+                            <div className="print-modal-total">
+                                <strong>Total:</strong> PKR {printReceipt.receipt.total}
+                            </div>
+                            <div className="print-modal-actions">
+                                <button className="create-btn" >Print</button>
+                                <button className="delete-button" onClick={() => setShowPrintModal(false)}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 //---------------------------------------
 //-------- SUPER ADMIN DASHBOARD --------
 //---------------------------------------
@@ -2356,4 +2697,4 @@ const SuperAdminDashboard = () => {
     );
 };
 
-export { SuperAdminDashboardOrders, SuperAdminDashboardRoles, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, AdminDashboard, AdminDashboardOrders, UserDashboard, SuperAdminDashboard, AdminDashboardProducts, AdminDashboardCategories, AdminDashboardSuppliers };
+export { SuperAdminDashboardOrders, SuperAdminDashboardRoles, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, AdminDashboard, AdminDashboardCheckout, AdminDashboardOrders, UserDashboard, SuperAdminDashboard, AdminDashboardProducts, AdminDashboardCategories, AdminDashboardSuppliers };

@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import UserLogin from "./pages/UserLogin";
-import { SuperAdminDashboard, AdminDashboard, AdminDashboardOrders, AdminDashboardProducts, AdminDashboardCategories, AdminDashboardSuppliers, UserDashboard, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, SuperAdminDashboardRoles, SuperAdminDashboardOrders } from "./pages/Dashboard";
+import { SuperAdminDashboard, AdminDashboard, AdminDashboardCheckout, AdminDashboardOrders, AdminDashboardProducts, AdminDashboardCategories, AdminDashboardSuppliers, UserDashboard, SuperAdminDashboardUsers, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, SuperAdminDashboardRoles, SuperAdminDashboardOrders } from "./pages/Dashboard";
 import ProtectedRoute from "./Components/ProtectedRoute";
 
 const App = () => {
@@ -40,6 +40,11 @@ const App = () => {
                 <Route path="/AdminDashboard/Suppliers" element={
                     <ProtectedRoute allowedRoles={['admin']}>
                         <AdminDashboardSuppliers />
+                    </ProtectedRoute>
+                } />
+                <Route path="/AdminDashboard/Checkout" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                        <AdminDashboardCheckout />
                     </ProtectedRoute>
                 } />
 
