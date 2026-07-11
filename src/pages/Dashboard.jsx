@@ -1101,13 +1101,10 @@ const AdminDashboardCheckout = () => {
                 if (!res.ok) throw new Error(data.error || data.message || 'Receipt creation failed');
                 lastReceiptId = data._id;
 
-                const newStock = item.Stock - item.qty;
-                const newStatus = newStock <= 0 ? 'Sold Out' : item.status;
-
-                await fetch(`http://localhost:5000/api/product/${item._id}`, {
+                await fetch('http://localhost:5000/api/product/stock/remove', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ Stock: newStock, status: newStatus })
+                    body: JSON.stringify({ product_id: item._id, quantity: item.qty })
                 });
             }));
             alert('Order placed successfully! Receipts created.');
