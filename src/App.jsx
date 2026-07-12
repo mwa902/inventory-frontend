@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import "./App.css";
+import "./AppNew.css";
 import UserLogin from "./pages/UserLogin";
 import { SuperAdminDashboard, AdminDashboard, AdminDashboardCheckout, AdminDashboardOrders, AdminDashboardProducts, AdminDashboardCategories, AdminDashboardSuppliers, UserDashboard, SuperAdminDashboardUsers, SuperAdminDashboardCheckout, SuperAdminDashboardProducts, SuperAdminDashboardCategories, SuperAdminDashboardSuppliers, SuperAdminDashboardRoles, SuperAdminDashboardOrders } from "./pages/Dashboard";
 import ProtectedRoute from "./Components/ProtectedRoute";

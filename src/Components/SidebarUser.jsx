@@ -2,11 +2,8 @@ import { useNavigate } from "react-router";
 
 const SidebarUser = () => {
     const navigate = useNavigate();
-    
+
     const handleDashboardClick = () => {
-        navigate('/UserDashboard');
-    };
-    const handleProductsClick = () => {
         navigate('/UserDashboard');
     };
 
@@ -15,7 +12,6 @@ const SidebarUser = () => {
             <div className="sidebar-center">
                 <div className="sidebar-items">
                     <div className="sidebar-item" onClick={handleDashboardClick}>Dashboard</div>
-                    <div className="sidebar-item" onClick={handleProductsClick}>Products</div>
                 </div>
             </div>
         </nav>
