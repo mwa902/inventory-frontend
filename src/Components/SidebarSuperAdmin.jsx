@@ -23,6 +23,9 @@ const SidebarSuperAdmin = () => {
     const handleOrdersClick = () => {
         navigate('/SuperAdminDashboard/Orders');
     };
+    const handleCheckoutClick = () => {
+        navigate('/SuperAdminDashboard/Checkout');
+    };
     return (
         <nav className="sidebar">
             <div className="sidebar-center">
@@ -33,6 +36,7 @@ const SidebarSuperAdmin = () => {
                     <div className="sidebar-item" onClick={handleCategoriesClick}>Categories</div>
                     <div className="sidebar-item" onClick={handleSuppliersClick}>Suppliers</div>
                     <div className="sidebar-item" onClick={handleRolesClick}>Roles</div>
+                    <div className="sidebar-item" onClick={handleCheckoutClick}>Checkout</div>
                     <div className="sidebar-item" onClick={handleOrdersClick}>Orders</div>
                 </div>
             </div>
