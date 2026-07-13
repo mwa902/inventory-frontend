@@ -557,6 +557,8 @@ const AdminDashboardProducts = () => {
 
         if (editForm.product_image instanceof File) {
             formData.append("image", editForm.product_image);
+        } else if (editForm.product_image) {
+            formData.append("image", editForm.product_image);
         }
 
         fetch(`http://localhost:5000/api/product/${editForm._id}`, {
@@ -937,7 +939,7 @@ const AdminDashboardProducts = () => {
                             >
                                 <img
                                     className="product-card-img"
-                                    src={p.image}
+                                    src={p.image ? (p.image.startsWith("http") ? p.image : `http://localhost:5000${p.image}`) : ""}
                                     alt={p.product_name}
                                 />
                                 <h3 className="product-card-title">{p.product_name}</h3>
@@ -2414,6 +2416,8 @@ const SuperAdminDashboardProducts = () => {
 
         if (editForm.product_image instanceof File) {
             formData.append("image", editForm.product_image);
+        } else if (editForm.product_image) {
+            formData.append("image", editForm.product_image);
         }
 
         fetch(`http://localhost:5000/api/product/${editForm._id}`, {
@@ -2794,7 +2798,7 @@ const SuperAdminDashboardProducts = () => {
                             >
                                 <img
                                     className="product-card-img"
-                                    src={p.image}
+                                    src={p.image ? (p.image.startsWith("http") ? p.image : `http://localhost:5000${p.image}`) : ""}
                                     alt={p.product_name}
                                 />
                                 <h3 className="product-card-title">{p.product_name}</h3>
