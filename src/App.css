@@ -195,14 +195,32 @@
   border: #145f96 solid 2px;
   border-radius: 30px;
   background-color: white;
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
 }
 
-.table tr,
-.table th {
+.table thead,
+.table tbody {
+  display: flex;
+  flex-direction: row;
+}
+
+.table tr {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.table th,
+.table td {
   padding: 10px;
   text-align: center;
-  align-items: flex-start;
-  justify-content: space-evenly;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .tablerole {
@@ -211,13 +229,32 @@
   border: #145f96 solid 2px;
   border-radius: 30px;
   background-color: white;
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
 }
 
-.tablerole tr,
-.tablerole th {
+.tablerole thead,
+.tablerole tbody {
+  display: flex;
+  flex-direction: row;
+}
+
+.tablerole tr {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.tablerole th,
+.tablerole td {
   padding: 10px;
   text-align: center;
-  border-radius: 30px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .modal-overlay {
