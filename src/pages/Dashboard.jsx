@@ -365,7 +365,7 @@ const AdminDashboardOrders = () => {
                                     required
                                 >
                                     <option value="">Select Supplier</option>
-                                    {suppliers.map((s) => (
+                                    {suppliers.filter((s) => s.status === "Confirm").map((s) => (
                                         <option key={s._id} value={s._id}>
                                             {s.Name}
                                         </option>
@@ -730,7 +730,7 @@ const AdminDashboardProducts = () => {
                                             required
                                         >
                                             <option value="">Select Supplier</option>
-                                            {suppliers.map((s) => (
+                                            {suppliers.filter((s) => s.status === "Confirm").map((s) => (
                                                 <option key={s._id} value={s._id}>
                                                     {s.Name}
                                                 </option>
@@ -887,7 +887,7 @@ const AdminDashboardProducts = () => {
                                             required
                                         >
                                             <option value="">Select Supplier</option>
-                                            {suppliers.map((s) => (
+                                            {suppliers.filter((s) => s.status === "Confirm").map((s) => (
                                                 <option key={s._id} value={s._id}>
                                                     {s.Name}
                                                 </option>
@@ -2589,7 +2589,7 @@ const SuperAdminDashboardProducts = () => {
                                             required
                                         >
                                             <option value="">Select Supplier</option>
-                                            {suppliers.map((s) => (
+                                            {suppliers.filter((s) => s.status === "Confirm").map((s) => (
                                                 <option key={s._id} value={s._id}>
                                                     {s.Name}
                                                 </option>
@@ -2746,7 +2746,7 @@ const SuperAdminDashboardProducts = () => {
                                             required
                                         >
                                             <option value="">Select Supplier</option>
-                                            {suppliers.map((s) => (
+                                            {suppliers.filter((s) => s.status === "Confirm").map((s) => (
                                                 <option key={s._id} value={s._id}>
                                                     {s.Name}
                                                 </option>
@@ -3840,7 +3840,7 @@ const SuperAdminDashboardOrders = () => {
                                     required
                                 >
                                     <option value="">Select Supplier</option>
-                                    {suppliers.map((s) => (
+                                    {suppliers.filter((s) => s.status === "Confirm").map((s) => (
                                         <option key={s._id} value={s._id}>
                                             {s.Name}
                                         </option>
