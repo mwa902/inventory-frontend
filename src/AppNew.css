@@ -1273,6 +1273,16 @@ body {
   padding-top: 8px;
 }
 
+.print-modal-list {
+  list-style: none;
+  padding: 0;
+  margin: 5px 0;
+}
+
+.print-modal-list-item {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* ==========================================
    REPORT SECTION
    ========================================== */

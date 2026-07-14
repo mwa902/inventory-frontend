@@ -4320,9 +4320,9 @@ const SuperAdminDashboardCheckout = () => {
                             </div>
                             <div className="print-modal-row">
                                 <strong>Products:</strong>
-                                <ul style={{ listStyle: "none", padding: 0, margin: "5px 0" }}>
+                                <ul className="print-modal-list">
                                     {printReceipt.receipt.items?.map((item, idx) => (
-                                        <li key={idx} style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                                        <li key={idx} className="print-modal-list-item">
                                             {item.ProductDetail?.product_name || "Unknown"} x {item.quantity}
                                         </li>
                                     ))}
