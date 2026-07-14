@@ -4352,13 +4352,11 @@ const SuperAdminDashboardCheckout = () => {
 
 const SuperAdminDashboard = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState(() => {
-        const stored = localStorage.getItem("user");
-        return stored ? JSON.parse(stored) : null;
-    });
+    const [user, setUser] = useState();
 
     useEffect(() => {
         const stored = localStorage.getItem("user");
+        setUser(JSON.parse(stored));
         if (!stored) {
             navigate("/UserLogin", { replace: true });
         }
