@@ -1961,16 +1961,21 @@ const AdminDashboardCheckout = () => {
                         <div className="modal print-modal">
                             <h2 className="print-modal-header">Receipt</h2>
                             <div className="print-modal-row">
-                                <strong>Receipt ID:</strong> {printReceipt.receipt._id}
+                                <strong>Receipt ID:</strong> {printReceipt.receipt._id.slice(-8).toUpperCase()}
                             </div>
                             <div className="print-modal-row">
                                 <strong>Payment Method:</strong>{" "}
                                 {printReceipt.receipt.paymentMethod}
                             </div>
                             <div className="print-modal-row">
-                                <strong>Product:</strong>{" "}
-                                {printReceipt.receipt.ProductDetail?.product_name || "Unknown"}{" "}
-                                x {printReceipt.receipt.quantity}
+                                <strong>Products:</strong>
+                                <ul style={{ listStyle: "none", padding: 0, margin: "5px 0" }}>
+                                    {printReceipt.receipt.items?.map((item, idx) => (
+                                        <li key={idx} style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                                            {item.ProductDetail?.product_name || "Unknown"} x {item.quantity}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                             <div className="print-modal-total">
                                 <strong>Total:</strong> PKR {printReceipt.receipt.total}
@@ -3993,46 +3998,30 @@ const SuperAdminDashboardCheckout = () => {
 
         setLoading(true);
         try {
-            let lastReceiptId = null;
+            const items = cart.map(item => ({
+                ProductDetail: item._id,
+                quantity: item.qty
+            }));
+
+            const res = await fetch("http://localhost:5000/api/receipt", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    User: user._id,
+                    items,
+                    paymentMethod,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || data.message || "Receipt creation failed");
+            }
+            const receiptId = data._id;
+
             for (const item of cart) {
-                const calcRes = await fetch(
-                    "http://localhost:5000/api/receipt/calculate-total",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ productId: item._id, quantity: item.qty }),
-                    },
-                );
-                const calcData = await calcRes.json();
-                if (!calcRes.ok)
-                    throw new Error(calcData.message || "Failed to calculate total");
-
-                const lineTotal = calcData.total;
-
-                const res = await fetch("http://localhost:5000/api/receipt", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({
-                        User: user._id,
-                        ProductDetail: item._id,
-                        quantity: item.qty,
-                        total: lineTotal,
-                        paymentMethod,
-                    }),
-                });
-                const data = await res.json();
-                if (!res.ok)
-                    throw new Error(
-                        data.error || data.message || "Receipt creation failed",
-                    );
-                lastReceiptId = data._id;
-
                 await fetch("http://localhost:5000/api/product/stock/remove", {
                     method: "PUT",
                     headers: {
@@ -4043,13 +4032,13 @@ const SuperAdminDashboardCheckout = () => {
                 });
             }
 
-            alert("Order placed successfully! Receipts created.");
+            alert("Order placed successfully! Receipt created.");
             setCart([]);
             loadProducts(token);
             loadReceipts(token);
 
-            if (lastReceiptId) {
-                handlePrintReceipt(lastReceiptId);
+            if (receiptId) {
+                handlePrintReceipt(receiptId);
             }
         } catch (err) {
             alert(err.message || "Failed to place order.");
@@ -4323,22 +4312,27 @@ const SuperAdminDashboardCheckout = () => {
                         <div className="modal print-modal">
                             <h2 className="print-modal-header">Receipt</h2>
                             <div className="print-modal-row">
-                                <strong>Receipt ID:</strong> {printReceipt.receipt._id}
+                                <strong>Receipt ID:</strong> {printReceipt.receipt._id.slice(-8).toUpperCase()}
                             </div>
                             <div className="print-modal-row">
                                 <strong>Payment Method:</strong>{" "}
                                 {printReceipt.receipt.paymentMethod}
                             </div>
                             <div className="print-modal-row">
-                                <strong>Product:</strong>{" "}
-                                {printReceipt.receipt.ProductDetail?.product_name || "Unknown"}{" "}
-                                x {printReceipt.receipt.quantity}
+                                <strong>Products:</strong>
+                                <ul style={{ listStyle: "none", padding: 0, margin: "5px 0" }}>
+                                    {printReceipt.receipt.items?.map((item, idx) => (
+                                        <li key={idx} style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                                            {item.ProductDetail?.product_name || "Unknown"} x {item.quantity}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                             <div className="print-modal-total">
                                 <strong>Total:</strong> PKR {printReceipt.receipt.total}
                             </div>
                             <div className="print-modal-actions">
-                                <button className="create-btn" onClick={() => window.print()}>
+                                <button className="create-btn">
                                     Print
                                 </button>
                                 <button
