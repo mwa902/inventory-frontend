@@ -1456,3 +1456,85 @@ body {
     color: #333;
   }
 }
+
+/* ==========================================
+   CUSTOM TOAST OVERRIDES (Center Up)
+   ========================================== */
+.custom-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 14px 28px;
+  border-radius: var(--radius-md);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+  animation: toast-slide-down 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  pointer-events: none;
+  font-size: 14px;
+  text-align: center;
+  min-width: 250px;
+}
+
+.toast-success { background: linear-gradient(135deg, #10b981, #059669); }
+.toast-error { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.toast-info { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+
+.toast-fade-out {
+  animation: toast-fade-out 0.3s ease forwards;
+}
+
+@keyframes toast-slide-down {
+  from { top: -50px; opacity: 0; }
+  to { top: 20px; opacity: 1; }
+}
+
+@keyframes toast-fade-out {
+  from { top: 20px; opacity: 1; }
+  to { top: -20px; opacity: 0; }
+}
+
+/* ==========================================
+   CUSTOM MODAL CONFIRMATION & STOCK BUTTONS
+   ========================================== */
+.confirm-overlay {
+  z-index: 99999 !important;
+}
+
+.confirm-modal-title {
+  margin-top: 0;
+}
+
+.confirm-modal-text {
+  margin-bottom: 20px;
+  color: var(--text-secondary);
+}
+
+.confirm-modal-actions {
+  margin-top: 10px;
+}
+
+.confirm-modal-btn-yes {
+  background-color: #dc3545 !important;
+}
+.confirm-modal-btn-yes:hover {
+  background-color: #c82333 !important;
+}
+
+.btn-add-stock {
+  background-color: #28a745 !important;
+  color: #fff !important;
+}
+.btn-add-stock:hover {
+  background-color: #218838 !important;
+}
+
+.btn-remove-stock {
+  background-color: #ffc107 !important;
+  color: #000 !important;
+}
+.btn-remove-stock:hover {
+  background-color: #e0a800 !important;
+}

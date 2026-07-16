@@ -6,6 +6,60 @@ import HeaderAdmin from "../Components/HeaderAdmin";
 import SidebarAdmin from "../Components/SidebarAdmin";
 import HeaderUser from "../Components/HeaderUser";
 import SidebarUser from "../Components/SidebarUser";
+// Override default alert to use a custom DOM toast (center-up position)
+window.alert = (msg) => {
+    const message = typeof msg === 'string' ? msg : String(msg);
+    const toast = document.createElement('div');
+    toast.className = 'custom-toast';
+    const lowerMsg = message.toLowerCase();
+    
+    if (lowerMsg.includes('success') || lowerMsg.includes('confirmed') || lowerMsg.includes('created') || lowerMsg.includes('deleted')) {
+        toast.classList.add('toast-success');
+    } else if (lowerMsg.includes('fail') || lowerMsg.includes('error') || lowerMsg.includes('wrong') || lowerMsg.includes('empty') || lowerMsg.includes('exceed')) {
+        toast.classList.add('toast-error');
+    } else {
+        toast.classList.add('toast-info');
+    }
+    
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('toast-fade-out');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+};
+
+// Override confirm to use a custom DOM modal returning a Promise
+window.customConfirm = (msg) => {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay confirm-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <h2 class="confirm-modal-title">Confirm Action</h2>
+            <p class="confirm-modal-text">${msg}</p>
+            <div class="modal-actions confirm-modal-actions">
+                <button class="btn-primary confirm-modal-btn-yes" id="confirm-yes">Confirm</button>
+                <button class="btn-cancel" id="confirm-no">Cancel</button>
+            </div>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        document.getElementById('confirm-yes').onclick = () => {
+            document.body.removeChild(overlay);
+            resolve(true);
+        };
+        document.getElementById('confirm-no').onclick = () => {
+            document.body.removeChild(overlay);
+            resolve(false);
+        };
+    });
+};
 
 //---------------------------------------
 //----------- USER DASHBOARD -----------
@@ -86,29 +140,45 @@ const AdminDashboard = () => {
         const stored = localStorage.getItem("user");
         return stored ? JSON.parse(stored) : null;
     });
+    const [counts, setCounts] = useState({ products: 0, users: 0, categories: 0, suppliers: 0, receipts: 0 });
 
     useEffect(() => {
         const stored = localStorage.getItem("user");
         if (!stored) {
             navigate("/UserLogin", { replace: true });
+            return;
         }
+        fetch("http://localhost:5000/api/dashboardstatus")
+            .then(res => res.json())
+            .then(data => setCounts(data))
+            .catch(err => console.error("Failed to load dashboard status", err));
     }, [navigate]);
 
     const statCards = [
         {
-            label: "Orders",
-            value: "Track",
-            detail: "Monitor status and next actions",
+            label: "Products",
+            value: counts.products || 0,
+            detail: "Total managed products",
         },
         {
-            label: "Products",
-            value: "Manage",
-            detail: "Keep pricing and stock up to date",
+            label: "Users",
+            value: counts.users || 0,
+            detail: "Registered users",
+        },
+        {
+            label: "Categories",
+            value: counts.categories || 0,
+            detail: "Product categories",
         },
         {
             label: "Suppliers",
-            value: "Review",
-            detail: "Stay close to your vendors",
+            value: counts.suppliers || 0,
+            detail: "Active vendors",
+        },
+        {
+            label: "Receipts",
+            value: counts.receipts || 0,
+            detail: "Generated receipts",
         },
     ];
 
@@ -256,7 +326,7 @@ const AdminDashboardOrders = () => {
     };
 
     const handleCancel = async (orderId) => {
-        if (!confirm("Are you sure you want to cancel this order?")) return;
+        if (!(await window.customConfirm("Are you sure you want to cancel this order?"))) return;
         const token = localStorage.getItem("token");
         try {
             const res = await fetch(`http://localhost:5000/api/order/confirmOrder`, {
@@ -449,6 +519,7 @@ const AdminDashboardProducts = () => {
     });
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [stockModal, setStockModal] = useState({ open: false, type: '', productId: '', currentStock: 0, quantity: '' });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -590,8 +661,8 @@ const AdminDashboardProducts = () => {
             })
             .catch((err) => alert("Something went wrong!"));
     };
-    const handleDelete = (productId) => {
-        if (!confirm("Are you sure you want to delete this product?")) return;
+    const handleDelete = async (productId) => {
+        if (!(await window.customConfirm("Are you sure you want to delete this product?"))) return;
         const token = localStorage.getItem("token");
         fetch(`http://localhost:5000/api/product/${productId}`, {
             method: "DELETE",
@@ -608,6 +679,39 @@ const AdminDashboardProducts = () => {
             })
             .catch(() => alert("Something went wrong!"));
     };
+
+    const handleAddStock = (productId) => {
+        setStockModal({ open: true, type: 'add', productId, currentStock: 0, quantity: '' });
+    };
+
+    const handleRemoveStock = (productId, currentStock) => {
+        setStockModal({ open: true, type: 'remove', productId, currentStock, quantity: '' });
+    };
+
+    const submitStockUpdate = (e) => {
+        e.preventDefault();
+        const { type, productId, quantity } = stockModal;
+        const token = localStorage.getItem("token");
+        const endpoint = type === 'add' ? 'addstock' : 'removestock';
+        fetch(`http://localhost:5000/api/product/${endpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ product_id: productId, quantity })
+        }).then(res => res.json()).then(data => {
+            if(data.message && data.message.includes("success")) {
+                alert(data.message);
+                setProducts(products.map(p => {
+                    if(p._id === productId) {
+                        const newStock = type === 'add' ? p.Stock + Number(quantity) : p.Stock - Number(quantity);
+                        return {...p, Stock: newStock, status: newStock > 0 ? "InStock" : "Sold Out"};
+                    }
+                    return p;
+                }));
+                setStockModal({ open: false, type: '', productId: '', currentStock: 0, quantity: '' });
+            } else { alert(data.message || `Failed to ${type} stock`); }
+        }).catch(err => alert(`Error processing stock update`));
+    };
+
     return (
         <div>
             <HeaderAdmin />
@@ -931,6 +1035,30 @@ const AdminDashboardProducts = () => {
                             </div>
                         </div>
                     )}
+                    {stockModal.open && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <h2>{stockModal.type === 'add' ? 'Add Stock' : 'Remove Stock'}</h2>
+                                <form onSubmit={submitStockUpdate}>
+                                    <div className="modal-field">
+                                        <label>Quantity</label>
+                                        <input 
+                                            type="number" 
+                                            min="1" 
+                                            max={stockModal.type === 'remove' ? stockModal.currentStock : undefined} 
+                                            value={stockModal.quantity} 
+                                            onChange={(e) => setStockModal({...stockModal, quantity: e.target.value})} 
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="modal-actions">
+                                        <button type="submit" className="btn-primary">Submit</button>
+                                        <button type="button" className="btn-cancel" onClick={() => setStockModal({ ...stockModal, open: false })}>Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                     <div className="products-grid">
                         {products.map((p) => (
                             <div
@@ -962,6 +1090,18 @@ const AdminDashboardProducts = () => {
                                         onClick={() => handleDelete(p._id)}
                                     >
                                         Delete
+                                    </button>
+                                    <button
+                                        className="edit-button btn-add-stock"
+                                        onClick={() => handleAddStock(p._id)}
+                                    >
+                                        + Stock
+                                    </button>
+                                    <button
+                                        className="delete-button btn-remove-stock"
+                                        onClick={() => handleRemoveStock(p._id, p.Stock)}
+                                    >
+                                        - Stock
                                     </button>
                                 </div>
                             </div>
@@ -1064,8 +1204,8 @@ const AdminDashboardCategories = () => {
         }
     };
 
-    const handleDelete = (id) => {
-        if (!confirm("Are you sure you want to delete this category?")) return;
+    const handleDelete = async (id) => {
+        if (!(await window.customConfirm("Are you sure you want to delete this category?"))) return;
         const token = localStorage.getItem("token");
         if (token) {
             fetch(`http://localhost:5000/api/category/${id}`, {
@@ -1324,7 +1464,7 @@ const AdminDashboardSuppliers = () => {
     };
 
     const deleteSupplier = async (id) => {
-        if (!confirm("Are you sure you want to delete this supplier?")) return;
+        if (!(await window.customConfirm("Are you sure you want to delete this supplier?"))) return;
         const token = localStorage.getItem("token");
         if (token) {
             fetch(`http://localhost:5000/api/supplier/${id}`, {
@@ -1969,9 +2109,9 @@ const AdminDashboardCheckout = () => {
                             </div>
                             <div className="print-modal-row">
                                 <strong>Products:</strong>
-                                <ul style={{ listStyle: "none", padding: 0, margin: "5px 0" }}>
+                                <ul className="print-modal-list">
                                     {printReceipt.receipt.items?.map((item, idx) => (
-                                        <li key={idx} style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                                        <li key={idx} className="print-modal-list-item">
                                             {item.ProductDetail?.product_name || "Unknown"} x {item.quantity}
                                         </li>
                                     ))}
@@ -2070,8 +2210,8 @@ const SuperAdminDashboardUsers = () => {
             .catch(() => { });
     };
 
-    const DeleteUser = (userId) => {
-        if (confirm("Are you sure you want to delete this user?")) {
+    const DeleteUser = async (userId) => {
+        if (await window.customConfirm("Are you sure you want to delete this user?")) {
             const token = localStorage.getItem("token");
             fetch(`http://localhost:5000/api/user/${userId}`, {
                 method: "DELETE",
@@ -2454,8 +2594,8 @@ const SuperAdminDashboardProducts = () => {
             })
             .catch((err) => alert("Something went wrong!"));
     };
-    const handleDelete = (productId) => {
-        if (!confirm("Are you sure you want to delete this product?")) return;
+    const handleDelete = async (productId) => {
+        if (!(await window.customConfirm("Are you sure you want to delete this product?"))) return;
         const token = localStorage.getItem("token");
         fetch(`http://localhost:5000/api/product/${productId}`, {
             method: "DELETE",
@@ -2928,8 +3068,8 @@ const SuperAdminDashboardCategories = () => {
         }
     };
 
-    const handleDelete = (id) => {
-        if (!confirm("Are you sure you want to delete this category?")) return;
+    const handleDelete = async (id) => {
+        if (!(await window.customConfirm("Are you sure you want to delete this category?"))) return;
         const token = localStorage.getItem("token");
         if (token) {
             fetch(`http://localhost:5000/api/category/${id}`, {
@@ -3188,7 +3328,7 @@ const SuperAdminDashboardSuppliers = () => {
     };
 
     const deleteSupplier = async (id) => {
-        if (!confirm("Are you sure you want to delete this supplier?")) return;
+        if (!(await window.customConfirm("Are you sure you want to delete this supplier?"))) return;
         const token = localStorage.getItem("token");
         if (token) {
             fetch(`http://localhost:5000/api/supplier/${id}`, {
@@ -3466,7 +3606,7 @@ const SuperAdminDashboardRoles = () => {
     };
 
     const handleDelete = async (roleId) => {
-        if (!confirm("Are you sure you want to delete this role?")) return;
+        if (!(await window.customConfirm("Are you sure you want to delete this role?"))) return;
         const token = localStorage.getItem("token");
         try {
             const res = await fetch(`http://localhost:5000/api/role/${roleId}`, {
@@ -3736,7 +3876,7 @@ const SuperAdminDashboardOrders = () => {
     };
 
     const handleCancel = async (orderId) => {
-        if (!confirm("Are you sure you want to cancel this order?")) return;
+        if (!(await window.customConfirm("Are you sure you want to cancel this order?"))) return;
         const token = localStorage.getItem("token");
         try {
             const res = await fetch(`http://localhost:5000/api/order/confirmOrder`, {
