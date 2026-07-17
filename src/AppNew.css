@@ -795,7 +795,8 @@ body {
 
 /* Role table — narrower variant */
 .tablerole {
-  width: 50%;
+  width: 30%;
+  min-width: 250px;
   border-collapse: separate;
   border-spacing: 0;
   background: var(--bg-card);

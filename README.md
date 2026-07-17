@@ -1,16 +1,109 @@
-# React + Vite
+# Inventory Management System - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A modern Inventory Management System built using React.js that provides a clean dashboard for managing products, suppliers, customers, orders, and inventory.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Responsive Dashboard
+- JWT Authentication
+- Product Management
+- Category Management
+- Supplier Management
+- Customer Management
+- Order Management
+- Dashboard Analytics
+- Search & Filtering
+- Protected Routes
+- Modern UI
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠 Tech Stack
 
-## Expanding the Oxlint configuration
+- React.js
+- React Router
+- Context API
+- CSS
+- Fetch API
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+---
+
+## Installation
+
+Clone repository
+
+```bash
+git clone https://github.com/yourusername/inventory-frontend.git
+```
+
+Install dependencies
+
+```bash
+npm install
+```
+
+Start development server
+
+```bash
+npm run dev
+```
+
+Runs on
+
+```
+http://localhost:5173
+```
+
+Backend should be running on
+
+```
+http://localhost:5000
+```
+
+---
+
+## Pages
+
+- Login
+- Dashboard
+- Products
+- Categories
+- Suppliers
+- Customers
+- Orders
+- Profile
+
+---
+
+## Folder Structure
+
+```
+src
+│
+├── components
+├── pages
+├── services
+├── context
+├── hooks
+├── assets
+├── App.jsx
+└── main.jsx
+```
+
+---
+
+## Future Improvements
+
+- Charts & Analytics
+- Dark Mode
+- Barcode Scanner
+- Notifications
+- Export Reports
+- Mobile App
+
+---
+
+## Author
+
+Ahmad Mujtaba
+Wahad Ahmed

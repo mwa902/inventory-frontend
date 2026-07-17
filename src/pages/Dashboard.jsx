@@ -6,13 +6,13 @@ import HeaderAdmin from "../Components/HeaderAdmin";
 import SidebarAdmin from "../Components/SidebarAdmin";
 import HeaderUser from "../Components/HeaderUser";
 import SidebarUser from "../Components/SidebarUser";
-// Override default alert to use a custom DOM toast (center-up position)
+
 window.alert = (msg) => {
     const message = typeof msg === 'string' ? msg : String(msg);
     const toast = document.createElement('div');
     toast.className = 'custom-toast';
     const lowerMsg = message.toLowerCase();
-    
+
     if (lowerMsg.includes('success') || lowerMsg.includes('confirmed') || lowerMsg.includes('created') || lowerMsg.includes('deleted')) {
         toast.classList.add('toast-success');
     } else if (lowerMsg.includes('fail') || lowerMsg.includes('error') || lowerMsg.includes('wrong') || lowerMsg.includes('empty') || lowerMsg.includes('exceed')) {
@@ -20,17 +20,16 @@ window.alert = (msg) => {
     } else {
         toast.classList.add('toast-info');
     }
-    
+
     toast.innerText = message;
     document.body.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.classList.add('toast-fade-out');
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 };
 
-// Override confirm to use a custom DOM modal returning a Promise
 window.customConfirm = (msg) => {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
@@ -148,7 +147,10 @@ const AdminDashboard = () => {
             navigate("/UserLogin", { replace: true });
             return;
         }
-        fetch("http://localhost:5000/api/dashboardstatus")
+        const token = localStorage.getItem("token");
+        fetch("http://localhost:5000/api/dashboardstatus", {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
             .then(res => res.json())
             .then(data => setCounts(data))
             .catch(err => console.error("Failed to load dashboard status", err));
@@ -156,29 +158,29 @@ const AdminDashboard = () => {
 
     const statCards = [
         {
+            label: "Users",
+            value: counts.users ?? 0,
+            detail: "Registered users in the system",
+        },
+        {
             label: "Products",
-            value: counts.products || 0,
+            value: counts.products ?? 0,
             detail: "Total managed products",
         },
         {
-            label: "Users",
-            value: counts.users || 0,
-            detail: "Registered users",
-        },
-        {
             label: "Categories",
-            value: counts.categories || 0,
-            detail: "Product categories",
+            value: counts.categories ?? 0,
+            detail: "Product categories available",
         },
         {
             label: "Suppliers",
-            value: counts.suppliers || 0,
-            detail: "Active vendors",
+            value: counts.suppliers ?? 0,
+            detail: "Total vendors",
         },
         {
             label: "Receipts",
-            value: counts.receipts || 0,
-            detail: "Generated receipts",
+            value: counts.receipts ?? 0,
+            detail: "Total generated receipts",
         },
     ];
 
@@ -519,7 +521,6 @@ const AdminDashboardProducts = () => {
     });
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [stockModal, setStockModal] = useState({ open: false, type: '', productId: '', currentStock: 0, quantity: '' });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -595,6 +596,7 @@ const AdminDashboardProducts = () => {
                 if (data.error) {
                     alert(data.error);
                 } else {
+                    alert("Product created successfully");
                     setProducts([...products, data]);
                     setIsCreateOpen(false);
                     setCreateForm({
@@ -644,6 +646,7 @@ const AdminDashboardProducts = () => {
                 if (data.error) {
                     alert(data.error);
                 } else {
+                    alert("Product updated successfully");
                     setProducts(products.map((p) => (p._id === editForm._id ? data : p)));
                     setIsEditOpen(false);
                     setEditForm({
@@ -680,38 +683,6 @@ const AdminDashboardProducts = () => {
             .catch(() => alert("Something went wrong!"));
     };
 
-    const handleAddStock = (productId) => {
-        setStockModal({ open: true, type: 'add', productId, currentStock: 0, quantity: '' });
-    };
-
-    const handleRemoveStock = (productId, currentStock) => {
-        setStockModal({ open: true, type: 'remove', productId, currentStock, quantity: '' });
-    };
-
-    const submitStockUpdate = (e) => {
-        e.preventDefault();
-        const { type, productId, quantity } = stockModal;
-        const token = localStorage.getItem("token");
-        const endpoint = type === 'add' ? 'addstock' : 'removestock';
-        fetch(`http://localhost:5000/api/product/${endpoint}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ product_id: productId, quantity })
-        }).then(res => res.json()).then(data => {
-            if(data.message && data.message.includes("success")) {
-                alert(data.message);
-                setProducts(products.map(p => {
-                    if(p._id === productId) {
-                        const newStock = type === 'add' ? p.Stock + Number(quantity) : p.Stock - Number(quantity);
-                        return {...p, Stock: newStock, status: newStock > 0 ? "InStock" : "Sold Out"};
-                    }
-                    return p;
-                }));
-                setStockModal({ open: false, type: '', productId: '', currentStock: 0, quantity: '' });
-            } else { alert(data.message || `Failed to ${type} stock`); }
-        }).catch(err => alert(`Error processing stock update`));
-    };
-
     return (
         <div>
             <HeaderAdmin />
@@ -732,12 +703,11 @@ const AdminDashboardProducts = () => {
                                         <input
                                             type="text"
                                             value={createForm.product_name}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    product_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, product_name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -746,12 +716,11 @@ const AdminDashboardProducts = () => {
                                         <input
                                             type="text"
                                             value={createForm.product_description}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    product_description: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, product_description: v });
+                                            }}
+                                            maxLength={100}
                                             required
                                         />
                                     </div>
@@ -759,13 +728,13 @@ const AdminDashboardProducts = () => {
                                         <label>Product Purchase Price</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={createForm.product_purchase_price}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    product_purchase_price: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setCreateForm({ ...createForm, product_purchase_price: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -773,31 +742,32 @@ const AdminDashboardProducts = () => {
                                         <label>Product Selling Price</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={createForm.product_selling_price}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    product_selling_price: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setCreateForm({ ...createForm, product_selling_price: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Stock</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             min="0"
                                             value={createForm.product_stock}
                                             onChange={(e) => {
-                                                const stock = e.target.value;
+                                                const stock = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
                                                 setCreateForm({
                                                     ...createForm,
                                                     product_stock: stock,
-                                                    product_status:
-                                                        Number(stock) > 0 ? "InStock" : "Sold Out",
+                                                    product_status: Number(stock) > 0 ? "InStock" : "Sold Out",
                                                 });
                                             }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -889,12 +859,11 @@ const AdminDashboardProducts = () => {
                                         <input
                                             type="text"
                                             value={editForm.product_name}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    product_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, product_name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -903,12 +872,11 @@ const AdminDashboardProducts = () => {
                                         <input
                                             type="text"
                                             value={editForm.product_description}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    product_description: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, product_description: v });
+                                            }}
+                                            maxLength={100}
                                             required
                                         />
                                     </div>
@@ -916,13 +884,13 @@ const AdminDashboardProducts = () => {
                                         <label>Product Purchase Price</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={editForm.product_purchase_price}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    product_purchase_price: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setEditForm({ ...editForm, product_purchase_price: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -930,31 +898,32 @@ const AdminDashboardProducts = () => {
                                         <label>Product Selling Price</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={editForm.product_selling_price}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    product_selling_price: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setEditForm({ ...editForm, product_selling_price: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Stock</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             min="0"
                                             value={editForm.product_stock}
                                             onChange={(e) => {
-                                                const stock = e.target.value;
+                                                const stock = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
                                                 setEditForm({
                                                     ...editForm,
                                                     product_stock: stock,
-                                                    product_status:
-                                                        Number(stock) > 0 ? "InStock" : "Sold Out",
+                                                    product_status: Number(stock) > 0 ? "InStock" : "Sold Out",
                                                 });
                                             }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -1035,30 +1004,6 @@ const AdminDashboardProducts = () => {
                             </div>
                         </div>
                     )}
-                    {stockModal.open && (
-                        <div className="modal-overlay">
-                            <div className="modal">
-                                <h2>{stockModal.type === 'add' ? 'Add Stock' : 'Remove Stock'}</h2>
-                                <form onSubmit={submitStockUpdate}>
-                                    <div className="modal-field">
-                                        <label>Quantity</label>
-                                        <input 
-                                            type="number" 
-                                            min="1" 
-                                            max={stockModal.type === 'remove' ? stockModal.currentStock : undefined} 
-                                            value={stockModal.quantity} 
-                                            onChange={(e) => setStockModal({...stockModal, quantity: e.target.value})} 
-                                            required 
-                                        />
-                                    </div>
-                                    <div className="modal-actions">
-                                        <button type="submit" className="btn-primary">Submit</button>
-                                        <button type="button" className="btn-cancel" onClick={() => setStockModal({ ...stockModal, open: false })}>Cancel</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
                     <div className="products-grid">
                         {products.map((p) => (
                             <div
@@ -1090,18 +1035,6 @@ const AdminDashboardProducts = () => {
                                         onClick={() => handleDelete(p._id)}
                                     >
                                         Delete
-                                    </button>
-                                    <button
-                                        className="edit-button btn-add-stock"
-                                        onClick={() => handleAddStock(p._id)}
-                                    >
-                                        + Stock
-                                    </button>
-                                    <button
-                                        className="delete-button btn-remove-stock"
-                                        onClick={() => handleRemoveStock(p._id, p.Stock)}
-                                    >
-                                        - Stock
                                     </button>
                                 </div>
                             </div>
@@ -1205,7 +1138,7 @@ const AdminDashboardCategories = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!(await window.customConfirm("Are you sure you want to delete this category?"))) return;
+        if (!(await window.customConfirm("Are you sure you want to delete this category? All related products will also be deleted."))) return;
         const token = localStorage.getItem("token");
         if (token) {
             fetch(`http://localhost:5000/api/category/${id}`, {
@@ -1213,9 +1146,10 @@ const AdminDashboardCategories = () => {
                 headers: { Authorization: `Bearer ${token}` },
             })
                 .then((res) => res.json())
-                .then(() => {
+                .then((data) => {
                     setCategories(categories.filter((c) => c._id !== id));
-                    alert("Category deleted successfully");
+                    const productNote = data.deletedProducts > 0 ? ` (${data.deletedProducts} related product(s) also deleted)` : '';
+                    alert("Category deleted successfully" + productNote);
                 })
                 .catch(() => alert("Failed to delete category"));
         }
@@ -1242,12 +1176,11 @@ const AdminDashboardCategories = () => {
                                         <input
                                             type="text"
                                             value={createForm.category_name}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    category_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, category_name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -1256,12 +1189,11 @@ const AdminDashboardCategories = () => {
                                         <input
                                             type="text"
                                             value={createForm.description}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    description: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, description: v });
+                                            }}
+                                            maxLength={100}
                                             required
                                         />
                                     </div>
@@ -1292,12 +1224,11 @@ const AdminDashboardCategories = () => {
                                         <input
                                             type="text"
                                             value={editForm.category_name}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    category_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, category_name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -1306,12 +1237,11 @@ const AdminDashboardCategories = () => {
                                         <input
                                             type="text"
                                             value={editForm.description}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    description: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, description: v });
+                                            }}
+                                            maxLength={100}
                                             required
                                         />
                                     </div>
@@ -1510,9 +1440,11 @@ const AdminDashboardSuppliers = () => {
                                         <input
                                             type="text"
                                             value={createForm.Name}
-                                            onChange={(e) =>
-                                                setCreateForm({ ...createForm, Name: e.target.value })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, Name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -1520,13 +1452,13 @@ const AdminDashboardSuppliers = () => {
                                         <label>Supplier Phone</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={createForm.phone_number}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    phone_number: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setCreateForm({ ...createForm, phone_number: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -1535,12 +1467,11 @@ const AdminDashboardSuppliers = () => {
                                         <input
                                             type="text"
                                             value={createForm.company}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    company: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, company: v });
+                                            }}
+                                            maxLength={80}
                                             required
                                         />
                                     </div>
@@ -1572,9 +1503,11 @@ const AdminDashboardSuppliers = () => {
                                         <input
                                             type="text"
                                             value={editForm.Name}
-                                            onChange={(e) =>
-                                                setEditForm({ ...editForm, Name: e.target.value })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, Name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -1582,13 +1515,13 @@ const AdminDashboardSuppliers = () => {
                                         <label>Supplier Phone</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={editForm.phone_number}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    phone_number: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setEditForm({ ...editForm, phone_number: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -1597,9 +1530,11 @@ const AdminDashboardSuppliers = () => {
                                         <input
                                             type="text"
                                             value={editForm.company}
-                                            onChange={(e) =>
-                                                setEditForm({ ...editForm, company: e.target.value })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, company: v });
+                                            }}
+                                            maxLength={80}
                                             required
                                         />
                                     </div>
@@ -1771,46 +1706,30 @@ const AdminDashboardCheckout = () => {
 
         setLoading(true);
         try {
-            let lastReceiptId = null;
+            const items = cart.map(item => ({
+                ProductDetail: item._id,
+                quantity: item.qty
+            }));
+
+            const res = await fetch("http://localhost:5000/api/receipt", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    User: user._id,
+                    items,
+                    paymentMethod,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || data.message || "Receipt creation failed");
+            }
+            const receiptId = data._id;
+
             for (const item of cart) {
-                const calcRes = await fetch(
-                    "http://localhost:5000/api/receipt/calculate-total",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ productId: item._id, quantity: item.qty }),
-                    },
-                );
-                const calcData = await calcRes.json();
-                if (!calcRes.ok)
-                    throw new Error(calcData.message || "Failed to calculate total");
-
-                const lineTotal = calcData.total;
-
-                const res = await fetch("http://localhost:5000/api/receipt", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({
-                        User: user._id,
-                        ProductDetail: item._id,
-                        quantity: item.qty,
-                        total: lineTotal,
-                        paymentMethod,
-                    }),
-                });
-                const data = await res.json();
-                if (!res.ok)
-                    throw new Error(
-                        data.error || data.message || "Receipt creation failed",
-                    );
-                lastReceiptId = data._id;
-
                 await fetch("http://localhost:5000/api/product/stock/remove", {
                     method: "PUT",
                     headers: {
@@ -1821,13 +1740,13 @@ const AdminDashboardCheckout = () => {
                 });
             }
 
-            alert("Order placed successfully! Receipts created.");
+            alert("Order placed successfully! Receipt created.");
             setCart([]);
             loadProducts(token);
             loadReceipts(token);
 
-            if (lastReceiptId) {
-                handlePrintReceipt(lastReceiptId);
+            if (receiptId) {
+                handlePrintReceipt(receiptId);
             }
         } catch (err) {
             alert(err.message || "Failed to place order.");
@@ -2075,8 +1994,15 @@ const AdminDashboardCheckout = () => {
                                             <td className="receipt-id-cell">#{r._id.slice(-6)}</td>
                                             <td>{r.User?.name || r.User}</td>
                                             <td>
-                                                {r.ProductDetail?.product_name || r.ProductDetail} x{" "}
-                                                {r.quantity}
+                                                {r.items && r.items.length > 0 ? (
+                                                    r.items.map((item, idx) => (
+                                                        <div key={idx}>
+                                                            {item.ProductDetail?.product_name || "Unknown Product"} x {item.quantity}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <>{r.ProductDetail?.product_name || "Unknown Product"} x {r.quantity || 0}</>
+                                                )}
                                             </td>
                                             <td>PKR {r.total}</td>
                                             <td>{r.paymentMethod}</td>
@@ -2121,11 +2047,11 @@ const AdminDashboardCheckout = () => {
                                 <strong>Total:</strong> PKR {printReceipt.receipt.total}
                             </div>
                             <div className="print-modal-actions">
-                                <button className="create-btn" onClick={() => window.print()}>
+                                <button className="btn-primary" onClick={() => window.print()}>
                                     Print
                                 </button>
                                 <button
-                                    className="delete-button"
+                                    className="btn-cancel"
                                     onClick={() => setShowPrintModal(false)}
                                 >
                                     Close
@@ -2190,36 +2116,46 @@ const SuperAdminDashboardUsers = () => {
         });
     };
 
-    const saveEdit = () => {
+    const saveEdit = async () => {
         const token = localStorage.getItem("token");
-        fetch(`http://localhost:5000/api/user/${editingUser._id}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(editForm),
-        })
-            .then((res) => res.json())
-            .then((updated) => {
-                setUsers(
-                    users.map((u) => (u._id === updated._id ? { ...u, ...updated } : u)),
-                );
-                setEditingUser(null);
-            })
-            .catch(() => { });
+        try {
+            const res = await fetch(`http://localhost:5000/api/user/${editingUser._id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(editForm),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || data.message || "User update failed");
+            }
+            setUsers(users.map((u) => (u._id === data._id ? { ...u, ...data } : u)));
+            setEditingUser(null);
+            alert("User updated successfully");
+        } catch (error) {
+            alert(error.message || "User update failed");
+        }
     };
 
     const DeleteUser = async (userId) => {
-        if (await window.customConfirm("Are you sure you want to delete this user?")) {
-            const token = localStorage.getItem("token");
-            fetch(`http://localhost:5000/api/user/${userId}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
+        if (!(await window.customConfirm("Are you sure you want to delete this user?"))) return;
+        const token = localStorage.getItem("token");
+        fetch(`http://localhost:5000/api/user/${userId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    setUsers(users.filter((u) => u._id !== userId));
+                    alert("User deleted successfully");
+                }
             })
-                .then(() => setUsers(users.filter((u) => u._id !== userId)))
-                .catch(() => { });
-        }
+            .catch(() => alert("Something went wrong!"));
     };
 
     const openCreate = () => {
@@ -2305,9 +2241,11 @@ const SuperAdminDashboardUsers = () => {
                             <input
                                 type="text"
                                 value={editForm.name}
-                                onChange={(e) =>
-                                    setEditForm({ ...editForm, name: e.target.value })
-                                }
+                                onChange={(e) => {
+                                    const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                    setEditForm({ ...editForm, name: v });
+                                }}
+                                maxLength={50}
                             />
                         </div>
                         <div className="modal-field">
@@ -2360,9 +2298,11 @@ const SuperAdminDashboardUsers = () => {
                                 <input
                                     type="text"
                                     value={createForm.name}
-                                    onChange={(e) =>
-                                        setCreateForm({ ...createForm, name: e.target.value })
-                                    }
+                                    onChange={(e) => {
+                                        const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                        setCreateForm({ ...createForm, name: v });
+                                    }}
+                                    maxLength={50}
                                     required
                                 />
                             </div>
@@ -2528,6 +2468,7 @@ const SuperAdminDashboardProducts = () => {
                 if (data.error) {
                     alert(data.error);
                 } else {
+                    alert("Product created successfully");
                     setProducts([...products, data]);
                     setIsCreateOpen(false);
                     setCreateForm({
@@ -2577,6 +2518,7 @@ const SuperAdminDashboardProducts = () => {
                 if (data.error) {
                     alert(data.error);
                 } else {
+                    alert("Product updated successfully");
                     setProducts(products.map((p) => (p._id === editForm._id ? data : p)));
                     setIsEditOpen(false);
                     setEditForm({
@@ -2632,12 +2574,11 @@ const SuperAdminDashboardProducts = () => {
                                         <input
                                             type="text"
                                             value={createForm.product_name}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    product_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, product_name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -2646,12 +2587,11 @@ const SuperAdminDashboardProducts = () => {
                                         <input
                                             type="text"
                                             value={createForm.product_description}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    product_description: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, product_description: v });
+                                            }}
+                                            maxLength={100}
                                             required
                                         />
                                     </div>
@@ -2659,13 +2599,13 @@ const SuperAdminDashboardProducts = () => {
                                         <label>Product Purchase Price</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={createForm.product_purchase_price}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    product_purchase_price: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setCreateForm({ ...createForm, product_purchase_price: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -2673,31 +2613,32 @@ const SuperAdminDashboardProducts = () => {
                                         <label>Product Selling Price</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={createForm.product_selling_price}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    product_selling_price: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setCreateForm({ ...createForm, product_selling_price: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Stock</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             min="0"
                                             value={createForm.product_stock}
                                             onChange={(e) => {
-                                                const stock = e.target.value;
+                                                const stock = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
                                                 setCreateForm({
                                                     ...createForm,
                                                     product_stock: stock,
-                                                    product_status:
-                                                        Number(stock) > 0 ? "InStock" : "Sold Out",
+                                                    product_status: Number(stock) > 0 ? "InStock" : "Sold Out",
                                                 });
                                             }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -2789,12 +2730,11 @@ const SuperAdminDashboardProducts = () => {
                                         <input
                                             type="text"
                                             value={editForm.product_name}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    product_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, product_name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -2803,12 +2743,11 @@ const SuperAdminDashboardProducts = () => {
                                         <input
                                             type="text"
                                             value={editForm.product_description}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    product_description: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, product_description: v });
+                                            }}
+                                            maxLength={100}
                                             required
                                         />
                                     </div>
@@ -2816,13 +2755,13 @@ const SuperAdminDashboardProducts = () => {
                                         <label>Product Purchase Price</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={editForm.product_purchase_price}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    product_purchase_price: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setEditForm({ ...editForm, product_purchase_price: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -2830,31 +2769,32 @@ const SuperAdminDashboardProducts = () => {
                                         <label>Product Selling Price</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={editForm.product_selling_price}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    product_selling_price: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setEditForm({ ...editForm, product_selling_price: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
                                     <div className="modal-field">
                                         <label>Product Stock</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             min="0"
                                             value={editForm.product_stock}
                                             onChange={(e) => {
-                                                const stock = e.target.value;
+                                                const stock = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
                                                 setEditForm({
                                                     ...editForm,
                                                     product_stock: stock,
-                                                    product_status:
-                                                        Number(stock) > 0 ? "InStock" : "Sold Out",
+                                                    product_status: Number(stock) > 0 ? "InStock" : "Sold Out",
                                                 });
                                             }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -3069,7 +3009,7 @@ const SuperAdminDashboardCategories = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!(await window.customConfirm("Are you sure you want to delete this category?"))) return;
+        if (!(await window.customConfirm("Are you sure you want to delete this category? All related products will also be deleted."))) return;
         const token = localStorage.getItem("token");
         if (token) {
             fetch(`http://localhost:5000/api/category/${id}`, {
@@ -3077,9 +3017,10 @@ const SuperAdminDashboardCategories = () => {
                 headers: { Authorization: `Bearer ${token}` },
             })
                 .then((res) => res.json())
-                .then(() => {
+                .then((data) => {
                     setCategories(categories.filter((c) => c._id !== id));
-                    alert("Category deleted successfully");
+                    const productNote = data.deletedProducts > 0 ? ` (${data.deletedProducts} related product(s) also deleted)` : '';
+                    alert("Category deleted successfully" + productNote);
                 })
                 .catch(() => alert("Failed to delete category"));
         }
@@ -3106,12 +3047,11 @@ const SuperAdminDashboardCategories = () => {
                                         <input
                                             type="text"
                                             value={createForm.category_name}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    category_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, category_name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -3120,12 +3060,11 @@ const SuperAdminDashboardCategories = () => {
                                         <input
                                             type="text"
                                             value={createForm.description}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    description: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, description: v });
+                                            }}
+                                            maxLength={100}
                                             required
                                         />
                                     </div>
@@ -3156,12 +3095,11 @@ const SuperAdminDashboardCategories = () => {
                                         <input
                                             type="text"
                                             value={editForm.category_name}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    category_name: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, category_name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -3170,12 +3108,11 @@ const SuperAdminDashboardCategories = () => {
                                         <input
                                             type="text"
                                             value={editForm.description}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    description: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, description: v });
+                                            }}
+                                            maxLength={100}
                                             required
                                         />
                                     </div>
@@ -3374,9 +3311,11 @@ const SuperAdminDashboardSuppliers = () => {
                                         <input
                                             type="text"
                                             value={createForm.Name}
-                                            onChange={(e) =>
-                                                setCreateForm({ ...createForm, Name: e.target.value })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, Name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -3384,13 +3323,13 @@ const SuperAdminDashboardSuppliers = () => {
                                         <label>Supplier Phone</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={createForm.phone_number}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    phone_number: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setCreateForm({ ...createForm, phone_number: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -3399,12 +3338,11 @@ const SuperAdminDashboardSuppliers = () => {
                                         <input
                                             type="text"
                                             value={createForm.company}
-                                            onChange={(e) =>
-                                                setCreateForm({
-                                                    ...createForm,
-                                                    company: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setCreateForm({ ...createForm, company: v });
+                                            }}
+                                            maxLength={80}
                                             required
                                         />
                                     </div>
@@ -3436,9 +3374,11 @@ const SuperAdminDashboardSuppliers = () => {
                                         <input
                                             type="text"
                                             value={editForm.Name}
-                                            onChange={(e) =>
-                                                setEditForm({ ...editForm, Name: e.target.value })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, Name: v });
+                                            }}
+                                            maxLength={50}
                                             required
                                         />
                                     </div>
@@ -3446,13 +3386,13 @@ const SuperAdminDashboardSuppliers = () => {
                                         <label>Supplier Phone</label>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             value={editForm.phone_number}
-                                            onChange={(e) =>
-                                                setEditForm({
-                                                    ...editForm,
-                                                    phone_number: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                                                setEditForm({ ...editForm, phone_number: v });
+                                            }}
+                                            maxLength={11}
                                             required
                                         />
                                     </div>
@@ -3461,9 +3401,11 @@ const SuperAdminDashboardSuppliers = () => {
                                         <input
                                             type="text"
                                             value={editForm.company}
-                                            onChange={(e) =>
-                                                setEditForm({ ...editForm, company: e.target.value })
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/[^a-zA-Z ]/g, '');
+                                                setEditForm({ ...editForm, company: v });
+                                            }}
+                                            maxLength={80}
                                             required
                                         />
                                     </div>
@@ -3541,15 +3483,6 @@ const SuperAdminDashboardSuppliers = () => {
 const SuperAdminDashboardRoles = () => {
     const [roles, setRoles] = useState([]);
     const navigate = useNavigate();
-    const [isEditing, setIsEditing] = useState(false);
-    const [currentRole, setCurrentRole] = useState(null);
-    const [editForm, setEditForm] = useState({
-        name: "",
-    });
-    const [createForm, setCreateForm] = useState({
-        name: "",
-    });
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
     const loadRoles = (token) => {
         fetch("http://localhost:5000/api/role", {
             headers: { Authorization: `Bearer ${token}` },
@@ -3566,44 +3499,6 @@ const SuperAdminDashboardRoles = () => {
             navigate("/UserLogin", { replace: true });
         }
     }, [navigate]);
-
-    const openEdit = (role) => {
-        setIsEditing(true);
-        setCurrentRole(role._id);
-        setEditForm({
-            name: role.roleName,
-        });
-    };
-
-    const cancelEdit = () => {
-        setIsEditing(false);
-        setCurrentRole(null);
-    };
-
-    const handleEditSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:5000/api/role/${currentRole}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    roleName: editForm.name,
-                }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Role update failed");
-            alert("Role updated successfully!");
-            setIsEditing(false);
-            setCurrentRole(null);
-            loadRoles(token);
-        } catch (error) {
-            alert(error.message || "Role update failed");
-        }
-    };
 
     const handleDelete = async (roleId) => {
         if (!(await window.customConfirm("Are you sure you want to delete this role?"))) return;
@@ -3625,42 +3520,6 @@ const SuperAdminDashboardRoles = () => {
         }
     };
 
-    const openCreate = () => {
-        setIsCreateOpen(true);
-        setCreateForm({ name: "" });
-    };
-
-    const cancelCreate = () => {
-        setIsCreateOpen(false);
-    };
-
-    const handleCreateSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/role", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    roleName: createForm.name,
-                }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Role creation failed");
-            alert("Role created successfully!");
-            setCreateForm({
-                name: "",
-            });
-            setIsCreateOpen(false);
-            loadRoles(token);
-        } catch (error) {
-            alert(error.message || "Role creation failed");
-        }
-    };
-
     return (
         <div>
             <HeaderSuperAdmin />
@@ -3668,97 +3527,20 @@ const SuperAdminDashboardRoles = () => {
                 <SidebarSuperAdmin />
                 <div className="content">
                     <h1>Roles</h1>
-                    <button className="create-btn" onClick={openCreate}>
-                        Create Role
-                    </button>
                     <table className="tablerole">
                         <thead>
                             <tr>
                                 <th>Role Name</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {roles.map((r) => (
                                 <tr key={r._id}>
                                     <td>{r.roleName}</td>
-                                    <td>
-                                        <button className="edit-button" onClick={() => openEdit(r)}>
-                                            Edit
-                                        </button>{" "}
-                                        <button
-                                            className="delete-button"
-                                            onClick={() => handleDelete(r._id)}
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-
-                    {/* create modal */}
-                    {isCreateOpen && (
-                        <div className="modal-overlay">
-                            <div className="modal">
-                                <h2>Create Role</h2>
-                                <form onSubmit={handleCreateSubmit}>
-                                    <div className="modal-field">
-                                        <label>Role Name</label>
-                                        <input
-                                            type="text"
-                                            value={createForm.name}
-                                            onChange={(e) =>
-                                                setCreateForm({ ...createForm, name: e.target.value })
-                                            }
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="modal-actions">
-                                        <button className="btn-cancel" onClick={cancelCreate}>
-                                            Cancel
-                                        </button>
-                                        <button className="btn-primary" type="submit">
-                                            Save
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* edit modal */}
-                    {isEditing && (
-                        <div className="modal-overlay">
-                            <div className="modal">
-                                <h2>Edit Role</h2>
-                                <form onSubmit={handleEditSubmit}>
-                                    <div className="modal-field">
-                                        <label>Role Name</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.name}
-                                            onChange={(e) =>
-                                                setEditForm({ ...editForm, name: e.target.value })
-                                            }
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="modal-actions">
-                                        <button className="btn-cancel" onClick={cancelEdit}>
-                                            Cancel
-                                        </button>
-                                        <button className="btn-primary" type="submit">
-                                            Save
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
@@ -4426,8 +4208,15 @@ const SuperAdminDashboardCheckout = () => {
                                             <td className="receipt-id-cell">#{r._id.slice(-6)}</td>
                                             <td>{r.User?.name || r.User}</td>
                                             <td>
-                                                {r.ProductDetail?.product_name || r.ProductDetail} x{" "}
-                                                {r.quantity}
+                                                {r.items && r.items.length > 0 ? (
+                                                    r.items.map((item, idx) => (
+                                                        <div key={idx}>
+                                                            {item.ProductDetail?.product_name || "Unknown Product"} x {item.quantity}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <>{r.ProductDetail?.product_name || "Unknown Product"} x {r.quantity || 0}</>
+                                                )}
                                             </td>
                                             <td>PKR {r.total}</td>
                                             <td>{r.paymentMethod}</td>
@@ -4472,11 +4261,11 @@ const SuperAdminDashboardCheckout = () => {
                                 <strong>Total:</strong> PKR {printReceipt.receipt.total}
                             </div>
                             <div className="print-modal-actions">
-                                <button className="create-btn">
+                                <button className="btn-primary" onClick={() => window.print()}>
                                     Print
                                 </button>
                                 <button
-                                    className="delete-button"
+                                    className="btn-cancel"
                                     onClick={() => setShowPrintModal(false)}
                                 >
                                     Close
@@ -4493,35 +4282,49 @@ const SuperAdminDashboardCheckout = () => {
 const SuperAdminDashboard = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState();
+    const [counts, setCounts] = useState({ products: 0, users: 0, categories: 0, suppliers: 0, receipts: 0 });
 
     useEffect(() => {
         const stored = localStorage.getItem("user");
         setUser(JSON.parse(stored));
         if (!stored) {
             navigate("/UserLogin", { replace: true });
+            return;
         }
+        const token = localStorage.getItem("token");
+        fetch("http://localhost:5000/api/dashboardstatus", {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
+            .then(res => res.json())
+            .then(data => setCounts(data))
+            .catch(err => console.error("Failed to load dashboard status", err));
     }, [navigate]);
 
     const statCards = [
         {
             label: "Users",
-            value: "Control",
-            detail: "Handle user roles and access",
+            value: counts.users ?? 0,
+            detail: "Registered users in the system",
         },
         {
             label: "Products",
-            value: "Monitor",
-            detail: "Keep inventory quality in sight",
+            value: counts.products ?? 0,
+            detail: "Total managed products",
         },
         {
             label: "Categories",
-            value: "Organize",
-            detail: "Structure your catalog cleanly",
+            value: counts.categories ?? 0,
+            detail: "Product categories available",
         },
         {
             label: "Suppliers",
-            value: "Review",
-            detail: "Track important vendor relationships",
+            value: counts.suppliers ?? 0,
+            detail: "Total vendors",
+        },
+        {
+            label: "Receipts",
+            value: counts.receipts ?? 0,
+            detail: "Total generated receipts",
         },
     ];
 
