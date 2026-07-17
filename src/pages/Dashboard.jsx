@@ -2082,6 +2082,7 @@ const SuperAdminDashboardUsers = () => {
         role: "",
     });
     const navigate = useNavigate();
+    const [showPassword, setShowPassword] = useState(false);
 
     const loadUsers = (token) => {
         fetch("http://localhost:5000/api/user", {
@@ -2319,14 +2320,25 @@ const SuperAdminDashboardUsers = () => {
                             </div>
                             <div className="modal-field">
                                 <label>Password</label>
-                                <input
-                                    type="password"
-                                    value={createForm.password}
-                                    onChange={(e) =>
-                                        setCreateForm({ ...createForm, password: e.target.value })
-                                    }
-                                    required
-                                />
+                                <div className="password-input-wrapper">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={createForm.password}
+                                        onChange={(e) =>
+                                            setCreateForm({ ...createForm, password: e.target.value })
+                                        }
+                                        required
+                                        className="password-input"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="password-toggle-btn"
+                                        title={showPassword ? "Hide Password" : "Show Password"}
+                                    >
+                                        {showPassword ? "🙈" : "👁️"}
+                                    </button>
+                                </div>
                             </div>
                             <div className="modal-field">
                                 <label>Role</label>
