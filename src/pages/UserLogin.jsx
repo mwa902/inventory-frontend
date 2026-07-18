@@ -41,7 +41,8 @@ const UserLogin = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h2>Login</h2>
+        <h2>Welcome Back</h2>
+        <p className="auth-subtitle">Sign in to your inventory workspace</p>
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label>Email</label>
@@ -50,6 +51,7 @@ const UserLogin = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              placeholder="you@example.com"
               required
             />
           </div>
@@ -60,10 +62,11 @@ const UserLogin = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
+              placeholder="••••••••"
               required
             />
           </div>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "8px" }}>
             Login
           </button>
         </form>
